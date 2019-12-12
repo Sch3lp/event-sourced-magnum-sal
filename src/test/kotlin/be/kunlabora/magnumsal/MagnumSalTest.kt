@@ -1,7 +1,9 @@
 package be.kunlabora.magnumsal
 
 import be.kunlabora.magnumsal.MagnumSalEvent.*
+import be.kunlabora.magnumsal.exception.IllegalMove
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatExceptionOfType
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -24,8 +26,16 @@ class MagnumSalTest {
     }
 
     @Test
+    fun `A Miner cannot be placed by a player that's not in the game`() {
+        assertThatExceptionOfType(IllegalMove::class.java)
+                .isThrownBy { magnumSal.placeMiner("Snarf", MineShaftPosition(1)) }
+                .withMessage("Placing a miner requires Snarf to be a player in the game.")
+    }
+
+    @Test
     fun `A Miner can be placed in the mineshaft's first position`() {
         magnumSal.addPlayer("Snarf")
+
         magnumSal.placeMiner("Snarf", MineShaftPosition(1))
 
         assertThat(eventStream).containsExactly(MinerPlaced("Snarf", MineShaftPosition(1)))
