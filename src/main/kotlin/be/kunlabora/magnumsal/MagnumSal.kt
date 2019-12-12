@@ -1,7 +1,6 @@
 package be.kunlabora.magnumsal
 
-import be.kunlabora.magnumsal.MagnumSalEvent.MinerPlaced
-import be.kunlabora.magnumsal.MagnumSalEvent.PlayerAdded
+import be.kunlabora.magnumsal.MagnumSalEvent.*
 import be.kunlabora.magnumsal.exception.requires
 
 sealed class MagnumSalEvent : Event {
@@ -27,7 +26,10 @@ class MagnumSal(private val eventStream: EventStream) {
     }
 
     fun removeMiner(by: String, at: MineShaftPosition) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        "Removing a miner".requires("$by to be a player in the game.") {
+            by in eventStream.filterIsInstance(PlayerAdded::class.java).map { it.name }
+        }
+        eventStream.push(MinerRemoved(by, at))
     }
 }
 
