@@ -30,7 +30,6 @@ class MagnumSalTest {
         }
     }
 
-
     @Nested
     inner class PlacingMiners {
         @Test

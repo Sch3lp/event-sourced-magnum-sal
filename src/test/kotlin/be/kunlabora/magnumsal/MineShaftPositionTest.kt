@@ -17,4 +17,9 @@ class MineShaftPositionTest {
         assertThat(MineShaftPosition(5).previous()).isEqualTo(MineShaftPosition(4))
         assertThat(MineShaftPosition(6).previous()).isEqualTo(MineShaftPosition(5))
     }
+
+    @Test
+    fun `toString | just returns the internal int value`() {
+        assertThat(MineShaftPosition(1).toString()).isEqualTo("mineshaft[1]")
+    }
 }
