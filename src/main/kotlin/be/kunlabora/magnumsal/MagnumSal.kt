@@ -25,8 +25,9 @@ class MagnumSal(private val eventStream: EventStream) {
 
     fun removeMiner(by: String, at: MineShaftPosition) {
         requiresPlayerInGame("Removing a miner", by)
-        "Removing a miner at $at".requires("there to either be another miner at $at, or no miner in at ${at.next()}") {
-            true
+        "Removing a miner at $at".requires("there to either be another miner there, or no miner at ${at.next()}") {
+            (at in eventStream.filterIsInstance(MinerPlaced::class.java).map { it.at })
+                    || at.next() !in eventStream.filterIsInstance(MinerPlaced::class.java).map { it.at }
         }
         eventStream.push(MinerRemoved(by, at))
     }

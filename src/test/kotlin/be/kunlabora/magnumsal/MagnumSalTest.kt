@@ -76,7 +76,7 @@ class MagnumSalTest {
     @Nested
     inner class RemovingMiners {
         @Test
-        fun `A Miner can be removed out of the mineshaft if doesn't break the chain rule`() {
+        fun `A Miner can be removed out of the mineshaft if it's the last one in the chain`() {
             magnumSal.addPlayer("Snarf")
             magnumSal.placeMiner("Snarf", MineShaftPosition(1))
             magnumSal.placeMiner("Snarf", MineShaftPosition(2))
@@ -88,12 +88,27 @@ class MagnumSalTest {
         }
 
         @Test
+        fun `A Miner can be removed out of the mineshaft if there's another one at its spot in the chain`() {
+            magnumSal.addPlayer("Snarf")
+            magnumSal.placeMiner("Snarf", MineShaftPosition(1))
+            magnumSal.placeMiner("Snarf", MineShaftPosition(1))
+            magnumSal.placeMiner("Snarf", MineShaftPosition(2))
+
+            magnumSal.removeMiner("Snarf", MineShaftPosition(1))
+
+            assertThat(eventStream)
+                    .contains(MinerRemoved("Snarf", MineShaftPosition(1)))
+        }
+
+        @Test
         fun `A Miner cannot be removed out of the mineshaft if it breaks the chain rule`() {
             magnumSal.addPlayer("Snarf")
             magnumSal.placeMiner("Snarf", MineShaftPosition(1))
             magnumSal.placeMiner("Snarf", MineShaftPosition(2))
 
-            magnumSal.removeMiner("Snarf", MineShaftPosition(1))
+            assertThatExceptionOfType(IllegalMove::class.java)
+                    .isThrownBy { magnumSal.removeMiner("Snarf", MineShaftPosition(1)) }
+                    .withMessage("Removing a miner at mineshaft[1] requires there to either be another miner there, or no miner at mineshaft[2]")
 
             assertThat(eventStream)
                     .doesNotContain(MinerRemoved("Snarf", MineShaftPosition(1)))
