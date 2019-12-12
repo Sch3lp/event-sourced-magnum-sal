@@ -15,9 +15,6 @@ class MagnumSal(private val eventStream: EventStream) {
     }
 
     fun placeMiner(by: String, at: MineShaftPosition) {
-        "Placing a miner in a non existing position is impossible".requires {
-            at in MineShaftPosition(1)..MineShaftPosition(6)
-        }
         requiresPlayerInGame("Placing a miner", by)
         "Placing a miner at $at".requires("there to be a miner at ${at.previous()}.") {
             (at == MineShaftPosition(1))
@@ -52,4 +49,8 @@ data class MineShaftPosition(private val _at: Int) {
     fun next(): MineShaftPosition = if (_at == 6) this else this.copy(_at = _at + 1)
     operator fun rangeTo(other: MineShaftPosition): List<MineShaftPosition> = (this._at..other._at).map { MineShaftPosition(it) }
     override fun toString(): String = "mineshaft[$_at]"
+
+    init {
+        if (_at !in 1..6) throw IllegalArgumentException("MineShaftPosition $_at does not exist.")
+    }
 }

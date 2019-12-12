@@ -63,15 +63,6 @@ class MagnumSalTest {
             assertThat(eventStream)
                     .doesNotContain(MinerPlaced("Snarf", MineShaftPosition(2)))
         }
-
-        @Test
-        fun `A Miner cannot be placed in the mineshaft's 7th position because there is no 7th position`() {
-            magnumSal.addPlayer("Snarf")
-
-            assertThatExceptionOfType(IllegalMove::class.java)
-                    .isThrownBy { magnumSal.placeMiner("Snarf", MineShaftPosition(7)) }
-                    .withMessage("Placing a miner in a non existing position is impossible")
-        }
     }
 
     @Nested

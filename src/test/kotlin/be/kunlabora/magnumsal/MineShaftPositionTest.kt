@@ -1,9 +1,25 @@
 package be.kunlabora.magnumsal
 
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatExceptionOfType
 import org.junit.jupiter.api.Test
+import java.lang.IllegalArgumentException
 
 class MineShaftPositionTest {
+
+    @Test
+    fun `A MineShaftPosition has to be between 1 and 6`() {
+        assertThatExceptionOfType(IllegalArgumentException::class.java)
+                .isThrownBy { MineShaftPosition(0) }
+                .withMessage("MineShaftPosition 0 does not exist.")
+        assertThatExceptionOfType(IllegalArgumentException::class.java)
+                .isThrownBy { MineShaftPosition(-1) }
+                .withMessage("MineShaftPosition -1 does not exist.")
+        assertThatExceptionOfType(IllegalArgumentException::class.java)
+                .isThrownBy { MineShaftPosition(7) }
+                .withMessage("MineShaftPosition 7 does not exist.")
+    }
+
     @Test
     fun `previous | MineShaftPosition 1 returns itself`() {
         assertThat(MineShaftPosition(1).previous()).isEqualTo(MineShaftPosition(1))
