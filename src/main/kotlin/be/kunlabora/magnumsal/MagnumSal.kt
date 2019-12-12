@@ -25,6 +25,9 @@ class MagnumSal(private val eventStream: EventStream) {
 
     fun removeMiner(by: String, at: MineShaftPosition) {
         requiresPlayerInGame("Removing a miner", by)
+        "Removing a miner at $at".requires("there to either be another miner at $at, or no miner in at ${at.next()}") {
+            true
+        }
         eventStream.push(MinerRemoved(by, at))
     }
 
@@ -37,5 +40,6 @@ class MagnumSal(private val eventStream: EventStream) {
 
 data class MineShaftPosition(private val _at: Int) {
     fun previous(): MineShaftPosition = if (_at == 1) this else this.copy(_at = _at - 1)
+    fun next(): MineShaftPosition = this
     override fun toString(): String = "mineshaft[$_at]"
 }

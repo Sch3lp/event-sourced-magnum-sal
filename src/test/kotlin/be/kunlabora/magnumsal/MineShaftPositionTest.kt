@@ -19,6 +19,20 @@ class MineShaftPositionTest {
     }
 
     @Test
+    fun `next | MineShaftPosition 6 returns itself`() {
+        assertThat(MineShaftPosition(6).next()).isEqualTo(MineShaftPosition(6))
+    }
+
+    @Test
+    fun `next | MineShaftPosition other than 6 returns next position`() {
+        assertThat(MineShaftPosition(1).next()).isEqualTo(MineShaftPosition(2))
+        assertThat(MineShaftPosition(2).next()).isEqualTo(MineShaftPosition(3))
+        assertThat(MineShaftPosition(3).next()).isEqualTo(MineShaftPosition(4))
+        assertThat(MineShaftPosition(4).next()).isEqualTo(MineShaftPosition(5))
+        assertThat(MineShaftPosition(5).next()).isEqualTo(MineShaftPosition(6))
+    }
+
+    @Test
     fun `toString | just returns the internal int value`() {
         assertThat(MineShaftPosition(1).toString()).isEqualTo("mineshaft[1]")
     }
