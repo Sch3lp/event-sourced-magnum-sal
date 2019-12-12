@@ -72,4 +72,32 @@ class MagnumSalTest {
                     .withMessage("Placing a miner in a non existing position is impossible")
         }
     }
+
+    @Nested
+    inner class RemovingMiners {
+        @Test
+        fun `A Miner can be removed out of the mineshaft if doesn't break the chain rule`() {
+            magnumSal.addPlayer("Snarf")
+            magnumSal.placeMiner("Snarf", MineShaftPosition(1))
+            magnumSal.placeMiner("Snarf", MineShaftPosition(2))
+
+            magnumSal.removeMiner("Snarf", MineShaftPosition(2))
+
+            assertThat(eventStream)
+                    .contains(MinerRemoved("Snarf", MineShaftPosition(2)))
+        }
+
+        @Test
+        fun `A Miner cannot be removed out of the mineshaft if it breaks the chain rule`() {
+            magnumSal.addPlayer("Snarf")
+            magnumSal.placeMiner("Snarf", MineShaftPosition(1))
+            magnumSal.placeMiner("Snarf", MineShaftPosition(2))
+
+            magnumSal.removeMiner("Snarf", MineShaftPosition(1))
+
+            assertThat(eventStream)
+                    .doesNotContain(MinerRemoved("Snarf", MineShaftPosition(1)))
+        }
+    }
+
 }
