@@ -40,6 +40,6 @@ class MagnumSal(private val eventStream: EventStream) {
 
 data class MineShaftPosition(private val _at: Int) {
     fun previous(): MineShaftPosition = if (_at == 1) this else this.copy(_at = _at - 1)
-    fun next(): MineShaftPosition = this
+    fun next(): MineShaftPosition = if (_at == 6) this else this.copy(_at = _at + 1)
     override fun toString(): String = "mineshaft[$_at]"
 }
