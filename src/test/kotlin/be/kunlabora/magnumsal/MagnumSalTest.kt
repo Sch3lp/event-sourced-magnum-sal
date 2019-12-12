@@ -98,6 +98,17 @@ class MagnumSalTest {
             assertThat(eventStream)
                     .doesNotContain(MinerRemoved("Snarf", MineShaftPosition(1)))
         }
+
+        @Test
+        fun `A Miner cannot be removed by a player that's not in the game`() {
+            assertThatExceptionOfType(IllegalMove::class.java)
+                    .isThrownBy { magnumSal.removeMiner("Snarf", MineShaftPosition(1)) }
+                    .withMessage("Removing a miner requires Snarf to be a player in the game.")
+
+            assertThat(eventStream)
+                    .doesNotContain(MinerRemoved("Snarf", MineShaftPosition(1)))
+        }
+
     }
 
 }
