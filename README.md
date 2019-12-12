@@ -35,3 +35,12 @@ Forget about two players and the town and the corridors. Just focus on the mine 
 1) Player 1 places a miner in the mineshaft's first spot.
 1) Player 1 removes their miner in the first spot.
 1) Player 1 places a miner in the mineshaft's second spot. <-- this should be an illegal move, because the first spot should first be filled.
+
+## Learnings!
+Tried out the _very little time_ scenario, got distracted a couple of times. Finished it in 1h30m.  
+Providing `MineShaftPosition` with helper methods will help somebody else to not get distracted.
+
+Having to replay the `MinerPlaced` and `MinerRemoved` events I was still able to keep it in a simple function.  
+But I would have extracted it into a `MineShaftOccupation` class, which will still end up being just a _value object_.  
+And which will also have a method to _try out a removal_.  
+Somehow I expected having to create something _more important_, so I think playing around with this more is necessary.
