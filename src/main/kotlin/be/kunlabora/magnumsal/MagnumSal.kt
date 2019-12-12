@@ -1,5 +1,6 @@
 package be.kunlabora.magnumsal
 
+import be.kunlabora.magnumsal.MagnumSalEvent.MinerPlaced
 import be.kunlabora.magnumsal.MagnumSalEvent.PlayerAdded
 
 sealed class MagnumSalEvent: Event {
@@ -13,7 +14,7 @@ class MagnumSal(private val eventStream: EventStream) {
     }
 
     fun placeMiner(by: String, at: MineShaftPosition) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        eventStream.push(MinerPlaced(by, at))
     }
 }
 

@@ -38,6 +38,7 @@ class MagnumSalTest {
 
         magnumSal.placeMiner("Snarf", MineShaftPosition(1))
 
-        assertThat(eventStream).containsExactly(MinerPlaced("Snarf", MineShaftPosition(1)))
+        assertThat(eventStream)
+                .contains(MinerPlaced("Snarf", MineShaftPosition(1)))
     }
 }
