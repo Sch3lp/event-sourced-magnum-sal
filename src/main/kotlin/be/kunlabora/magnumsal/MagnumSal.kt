@@ -4,7 +4,7 @@ import be.kunlabora.magnumsal.MagnumSalEvent.MinerPlaced
 import be.kunlabora.magnumsal.MagnumSalEvent.PlayerAdded
 import be.kunlabora.magnumsal.exception.requires
 
-sealed class MagnumSalEvent: Event {
+sealed class MagnumSalEvent : Event {
     data class PlayerAdded(val name: String) : MagnumSalEvent()
     data class MinerPlaced(val by: String, val at: MineShaftPosition) : MagnumSalEvent()
 }
@@ -19,7 +19,8 @@ class MagnumSal(private val eventStream: EventStream) {
             by in eventStream.filterIsInstance(PlayerAdded::class.java).map { it.name }
         }
         "Placing a miner at $at".requires("there to be a miner at ${at.previous()}.") {
-            at.previous() in eventStream.filterIsInstance(MinerPlaced::class.java).map { it.at }
+            (at == MineShaftPosition(1))
+                    || at.previous() in eventStream.filterIsInstance(MinerPlaced::class.java).map { it.at }
         }
         eventStream.push(MinerPlaced(by, at))
     }
