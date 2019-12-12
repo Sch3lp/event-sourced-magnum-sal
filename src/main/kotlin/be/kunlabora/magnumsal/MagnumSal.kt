@@ -15,9 +15,7 @@ class MagnumSal(private val eventStream: EventStream) {
     }
 
     fun placeMiner(by: String, at: MineShaftPosition) {
-        "Placing a miner".requires("$by to be a player in the game.") {
-            by in eventStream.filterIsInstance(PlayerAdded::class.java).map { it.name }
-        }
+        requiresPlayerInGame("Placing a miner", by)
         "Placing a miner at $at".requires("there to be a miner at ${at.previous()}.") {
             (at == MineShaftPosition(1))
                     || at.previous() in eventStream.filterIsInstance(MinerPlaced::class.java).map { it.at }
@@ -26,10 +24,14 @@ class MagnumSal(private val eventStream: EventStream) {
     }
 
     fun removeMiner(by: String, at: MineShaftPosition) {
-        "Removing a miner".requires("$by to be a player in the game.") {
+        requiresPlayerInGame("Removing a miner", by)
+        eventStream.push(MinerRemoved(by, at))
+    }
+
+    private fun requiresPlayerInGame(move: String, by: String) {
+        move.requires("$by to be a player in the game.") {
             by in eventStream.filterIsInstance(PlayerAdded::class.java).map { it.name }
         }
-        eventStream.push(MinerRemoved(by, at))
     }
 }
 
