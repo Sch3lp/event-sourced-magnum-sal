@@ -59,7 +59,7 @@ class MagnumSalTest {
 
             assertThatExceptionOfType(IllegalMove::class.java)
                     .isThrownBy { magnumSal.placeMiner("Snarf", MineShaftPosition(2)) }
-                    .withMessage("Placing a miner in the mineshaft at 2 requires there to be a miner in the mineshaft at 1.")
+                    .withMessage("Placing a miner at mineshaft[2] requires there to be a miner at mineshaft[1].")
 
             assertThat(eventStream)
                     .doesNotContain(MinerPlaced("Snarf", MineShaftPosition(2)))

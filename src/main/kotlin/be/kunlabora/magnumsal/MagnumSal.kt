@@ -18,8 +18,16 @@ class MagnumSal(private val eventStream: EventStream) {
         "Placing a miner".requires("$by to be a player in the game.") {
             by in eventStream.filterIsInstance(PlayerAdded::class.java).map { it.name }
         }
+        "Placing a miner at $at".requires("there to be a miner at ${at.previous()}") {
+            at.previous() in eventStream.filterIsInstance(MinerPlaced::class.java).map { it.at }
+        }
         eventStream.push(MinerPlaced(by, at))
     }
 }
 
-data class MineShaftPosition(private val _pos: Int)
+data class MineShaftPosition(private val _at: Int) {
+    fun previous(): MineShaftPosition {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+}
