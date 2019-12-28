@@ -1,6 +1,7 @@
 package be.kunlabora.magnumsal.migration
 
-import be.kunlabora.magnumsal.EventStream
+import be.kunlabora.magnumsal.*
+import be.kunlabora.magnumsal.MagnumSalEvent.*
 import be.kunlabora.magnumsal.migration.read.readEventLog
 import org.junit.jupiter.api.Test
 
@@ -8,30 +9,43 @@ class MigrationTest {
     @Test
     fun `migrate | returns a new EventStream with MinersGotTired events`() {
         val migratedEventStream = migrate(readEventLog())
+        migratedEventStream.map {
+            if (it is SaltMined || it is MinersGotTired) {
+                println("${migratedEventStream.indexOf(it)} : $it")
+            }
+        }
 //        assertThat migratedEventStream contains the correct MinersGotTired events
     }
 }
 
 fun migrate(eventStream: EventStream): EventStream {
-    TODO("""
-Current checking of tired miners is pretty convoluted:
-```kotlin
-    private fun tiredWorkersAt(player: PlayerColor, at: PositionInMine): Int {
-        val playersSaltMiningActions = eventStream.filterEvents<SaltMined>()
-                .filter { it.from == at && it.player == player }
-        val minersTiredFromMining = playersSaltMiningActions
-                .fold(0) { acc, it -> acc + it.saltMined.size }
-        val minersTiredFromHoldingBackWater = playersSaltMiningActions
-                .count() * waterRemainingInChamber(at)
-        return minersTiredFromMining + minersTiredFromHoldingBackWater
+    val nextUnprocessedSaltMinedEvent = nextSaltMinedEvent(eventStream)
+    val indexOfNextSaltMinedEvent = eventStream.indexOf(nextUnprocessedSaltMinedEvent)
+    val limitedEventStream = EventStream(eventStream.subList(0, indexOfNextSaltMinedEvent + 1).toMutableList())
+    val tiredMiners = tiredWorkersAt(limitedEventStream, nextUnprocessedSaltMinedEvent.player, nextUnprocessedSaltMinedEvent.from)
+    val migratedEventStream = eventStream.toMutableList()
+    val newEvent = MinersGotTired(nextUnprocessedSaltMinedEvent.player, nextUnprocessedSaltMinedEvent.from, tiredMiners)
+    migratedEventStream.add(indexOfNextSaltMinedEvent + 1, newEvent)
+    return EventStream(migratedEventStream)
+}
+
+private fun nextSaltMinedEvent(eventStream: EventStream): SaltMined {
+    val lastMinersGotTired = eventStream.lastEventOrNull<MinersGotTired>()
+    return if (lastMinersGotTired != null) {
+        val eventsAfterMinersGotTired = eventStream.subList(eventStream.indexOf(lastMinersGotTired), eventStream.size - 1)
+        EventStream(eventsAfterMinersGotTired.toMutableList()).filterEvents<SaltMined>().first()
+    } else {
+        eventStream.filterEvents<SaltMined>().first()
     }
-```
-We want to replace that with a simpler check for `MinersGotTiredEvent`s, but those don't exist yet.
+}
 
-1) First implement the migrate function that adds these events in the proper scenario's (as if the actual code in MagnumSal was already adding these events, like in the last step of this kata).
-1) (Optional) Then update `MagnumSal.tiredWorkersAt` to use these new events. Verify by writing tests.
-1) (Optional) Finally implement adding these events in `MagnumSal` when a Miner gets tired.
-
-GL HF!
-        """)
+private fun tiredWorkersAt(limitedEventStream: EventStream, player: PlayerColor, at: PositionInMine): Int {
+    val playersSaltMiningActions = limitedEventStream.filterEvents<SaltMined>()
+            .filter { it.from == at && it.player == player }
+    val minersTiredFromMining = playersSaltMiningActions
+            .fold(0) { acc, it -> acc + it.saltMined.size }
+    val waterRemainingInChamber = limitedEventStream.filterEvents<MineChamberRevealed>().single { it.at == at }.tile.waterCubes
+    val minersTiredFromHoldingBackWater = playersSaltMiningActions
+            .count() * waterRemainingInChamber
+    return minersTiredFromMining + minersTiredFromHoldingBackWater
 }
