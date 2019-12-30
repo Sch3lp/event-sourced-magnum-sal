@@ -2,7 +2,13 @@ package be.kunlabora.magnumsal.migration
 
 import be.kunlabora.magnumsal.*
 import be.kunlabora.magnumsal.MagnumSalEvent.*
+import be.kunlabora.magnumsal.PlayerColor.*
+import be.kunlabora.magnumsal.PositionInMine.Companion.at
+import be.kunlabora.magnumsal.gamepieces.AllMineChamberTiles
+import be.kunlabora.magnumsal.gamepieces.Salt.*
+import be.kunlabora.magnumsal.gamepieces.Salts
 import be.kunlabora.magnumsal.migration.read.readEventLog
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
 class MigrationTest {
@@ -11,10 +17,18 @@ class MigrationTest {
         val migratedEventStream = migrate(readEventLog())
         migratedEventStream.map {
             if (it is SaltMined || it is MinersGotTired) {
-                println("${migratedEventStream.indexOf(it)} : $it")
+                println("${migratedEventStream.indexOf(it)} :        $it")
             }
         }
-//        assertThat migratedEventStream contains the correct MinersGotTired events
+        assertThat(migratedEventStream)
+                .containsOnlyOnce(SaltMined(White, at(2, -1), Salts(BROWN, GREEN)))
+                .containsOnlyOnce(MinersGotTired(White, at(2, -1), 3))
+                .containsOnlyOnce(SaltMined(Black, at(2, -2), Salts(BROWN, BROWN)))
+                .containsOnlyOnce(MinersGotTired(Black, at(2, -2), 3))
+                .containsOnlyOnce(SaltMined(Orange, at(2, 1), Salts(BROWN, BROWN)))
+                .containsOnlyOnce(MinersGotTired(Orange, at(2, 1), 3))
+                .containsOnlyOnce(SaltMined(Purple, at(2, 2), Salts(BROWN, BROWN)))
+                .containsOnlyOnce(MinersGotTired(Purple, at(2, 2), 2)) //tile has 0 water cubes
     }
 }
 
