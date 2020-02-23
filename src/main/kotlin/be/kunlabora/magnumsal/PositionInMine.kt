@@ -26,7 +26,7 @@ data class PositionInMine(val depth: Int, val width: Int) {
     fun isInACorridor() = this.width != 0
     fun previous() = if (isInMineShaft()) higher() else previousInCorridor()
     fun next() = if (isInMineShaft()) deeper() else nextInCorridor()
-    fun isCrossSection() = this in listOf(at(2,0),at(4,0),at(6,0))
+    fun isCrossSection() = this in listOf(at(2, 0), at(4, 0), at(6, 0))
     fun nearestFurtherPositions() = if (!isCrossSection()) listOf(next()) else if (depth != 6) listOf(deeper(), at(depth, width - 1), at(depth, width + 1)) else listOf(at(depth, width - 1), at(depth, width + 1))
     private fun previousInCorridor() = if (width < 0) at(depth, width + 1) else at(depth, width - 1)
     private fun nextInCorridor() = if (width < 0) at(depth, width - 1) else at(depth, width + 1)
@@ -38,6 +38,16 @@ data class PositionInMine(val depth: Int, val width: Int) {
         return if (width == 0) "mineshaft[$depth]" else if (width < 0) "minechamber[$depth, left[${width.absoluteValue}]]" else "minechamber[$depth, right[$width]]"
     }
 
+    fun positionsUntilTheTop(): List<PositionInMine> {
+        val result = mutableListOf<PositionInMine>()
+        var cursor: PositionInMine = this
+        do {
+            cursor = cursor.previous()
+            result.add(cursor)
+        } while (!cursor.isTheTop())
+
+        return result
+    }
 
 
     companion object {

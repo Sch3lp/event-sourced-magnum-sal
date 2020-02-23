@@ -1,9 +1,12 @@
 package be.kunlabora.magnumsal
 
+import be.kunlabora.magnumsal.MagnumSalEvent.ZlotyPaid
+import be.kunlabora.magnumsal.MagnumSalEvent.ZłotyReceived
 import be.kunlabora.magnumsal.PlayerColor.*
 import be.kunlabora.magnumsal.PositionInMine.Companion.at
 import be.kunlabora.magnumsal.gamepieces.AllMineChamberTiles
 import be.kunlabora.magnumsal.gamepieces.MineChamberTile
+import be.kunlabora.magnumsal.gamepieces.Złoty
 
 data class Player(val name: PlayerName, val color: PlayerColor)
 
@@ -77,6 +80,9 @@ fun TestMagnumSal.distributeWorkersInTheMineShaft(amountOfWorkersToUse: Int, pla
     return this
 }
 
+/**
+ * Two players White and Black. It's now White's turn.
+ */
 fun TestMagnumSal.withFourWhiteMinersAtFirstRightMineChamber(): TestMagnumSal {
     this.withPlayersInOrder("Bruno" using White, "Tim" using Black)
     magnumSal.placeWorkerInMine(White, at(1, 0))
@@ -153,6 +159,17 @@ fun TestMagnumSal.withOnlyMineChamberTilesOf(tile: MineChamberTile): TestMagnumS
     this.tiles = AllMineChamberTiles
             .filter { it.level == tile.level }
             .map { it.copy(salt = tile.salt, waterCubes = tile.waterCubes) }
+    return this
+}
+
+fun TestMagnumSal.withPlayerHaving(player: PlayerColor, zł: Złoty): TestMagnumSal {
+    val currentTotalZł = this.eventStream.filterEvents<ZłotyReceived>()
+            .filter { it.player == player }
+            .sumBy { it.złoty }
+    when {
+        currentTotalZł > zł -> this.eventStream.push(ZlotyPaid(player, currentTotalZł - zł))
+        currentTotalZł < zł -> this.eventStream.push(ZłotyReceived(player, currentTotalZł - zł))
+    }
     return this
 }
 

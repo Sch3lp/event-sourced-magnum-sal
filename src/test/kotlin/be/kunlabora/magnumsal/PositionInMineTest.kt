@@ -189,4 +189,37 @@ class PositionInMineTest {
         assertThat(at(4,0).nearestFurtherPositions()).containsExactly(at(5,0), at(4,-1), at(4,1))
         assertThat(at(6,0).nearestFurtherPositions()).containsExactly(at(6,-1), at(6,1))
     }
+
+    @Test
+    fun `positionsUntilTheTop | when at bottom of the MineShaft, should return all the mineshaft positions excluding this one`() {
+        assertThat(at(6,0).positionsUntilTheTop()).containsExactly(
+                at(5,0),
+                at(4,0),
+                at(3,0),
+                at(2,0),
+                at(1,0)
+        )
+    }
+
+    @Test
+    fun `positionsUntilTheTop | when at the end of the lowest corridor, should return the corridor and all the mineshaft positions excluding this one`() {
+        assertThat(at(6,2).positionsUntilTheTop()).containsExactly(
+                at(6,1),
+                at(6,0),
+                at(5,0),
+                at(4,0),
+                at(3,0),
+                at(2,0),
+                at(1,0)
+        )
+        assertThat(at(6,-2).positionsUntilTheTop()).containsExactly(
+                at(6,-1),
+                at(6,0),
+                at(5,0),
+                at(4,0),
+                at(3,0),
+                at(2,0),
+                at(1,0)
+        )
+    }
 }

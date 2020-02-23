@@ -6,11 +6,9 @@ import be.kunlabora.magnumsal.PositionInMine.Companion.at
 import be.kunlabora.magnumsal.exception.IllegalTransitionException
 import be.kunlabora.magnumsal.gamepieces.*
 import be.kunlabora.magnumsal.gamepieces.Salt.*
-import be.kunlabora.magnumsal.gamepieces.Zloty.Companion.zł
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatExceptionOfType
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 
@@ -150,10 +148,10 @@ class MagnumSalTest {
                             PlayerJoined("Gargamel", Orange),
                             PlayerJoined("Snarf", Purple),
                             PlayerOrderDetermined(Orange, Black, Purple, White),
-                            ZlotyReceived(Orange, zł(10)),
-                            ZlotyReceived(Black, zł(12)),
-                            ZlotyReceived(Purple, zł(14)),
-                            ZlotyReceived(White, zł(16))
+                            ZłotyReceived(Orange, 10),
+                            ZłotyReceived(Black, 12),
+                            ZłotyReceived(Purple, 14),
+                            ZłotyReceived(White, 16)
                     )
         }
 
@@ -171,8 +169,8 @@ class MagnumSalTest {
                             PlayerJoined("Bruno", White),
                             PlayerJoined("Tim", Black),
                             PlayerOrderDetermined(Black, White),
-                            ZlotyReceived(Black, zł(10)),
-                            ZlotyReceived(White, zł(12))
+                            ZłotyReceived(Black, 10),
+                            ZłotyReceived(White, 12)
                     )
         }
     }
@@ -629,11 +627,18 @@ class MagnumSalTest {
                     .withMessage("Transition requires you to have enough rested miners at ${at(2, 1)}")
         }
 
-        //Mining costs zloty
+        //Mining costs złoty
         @Test
-        @Disabled
         fun `Cannot mine from a Mine Chamber when player does not have enough money to pay the chain`() {
+            val magnumSal = TestMagnumSal(eventStream)
+                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
+                    .withFourWhiteMinersAtFirstRightMineChamber()
+                    .withPlayerHaving(White, 0)
+                    .build()
 
+            assertThatExceptionOfType(IllegalTransitionException::class.java)
+                    .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(WHITE)) }
+                    .withMessage("Transition requires you to have enough złoty to pay for transport bringing your mined salt out of the mine")
         }
     }
 }

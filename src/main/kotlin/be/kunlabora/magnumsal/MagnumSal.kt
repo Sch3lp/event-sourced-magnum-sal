@@ -5,18 +5,14 @@ import be.kunlabora.magnumsal.MinerMovement.PlaceMiner
 import be.kunlabora.magnumsal.MinerMovement.RemoveMiner
 import be.kunlabora.magnumsal.exception.transitionRequires
 import be.kunlabora.magnumsal.gamepieces.*
-import be.kunlabora.magnumsal.gamepieces.Zloty.Companion.zł
-import java.time.Instant.now
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatter.ofPattern
-import kotlin.contracts.InvocationKind
-import kotlin.contracts.contract
 
 sealed class MagnumSalEvent : Event {
     data class PlayerJoined(val name: String, val color: PlayerColor) : MagnumSalEvent()
     data class PlayerOrderDetermined(val player1: PlayerColor, val player2: PlayerColor, val player3: PlayerColor? = null, val player4: PlayerColor? = null) : MagnumSalEvent()
-    data class ZlotyReceived(val player: PlayerColor, val zloty: Zloty) : MagnumSalEvent()
+    data class ZłotyReceived(val player: PlayerColor, val złoty: Złoty) : MagnumSalEvent()
+    data class ZlotyPaid(val player: PlayerColor, val złoty: Złoty) : MagnumSalEvent()
     data class MinerPlaced(val player: PlayerColor, val at: PositionInMine) : MagnumSalEvent()
     data class MineChamberRevealed(val at: PositionInMine, val tile: MineChamberTile) : MagnumSalEvent()
     data class MinerRemoved(val player: PlayerColor, val at: PositionInMine) : MagnumSalEvent()
@@ -67,10 +63,10 @@ class MagnumSal(private val eventStream: EventStream,
             colors.intersect(players).size == players.size
         }
         eventStream.push(PlayerOrderDetermined(player1, player2, player3, player4))
-        eventStream.push(ZlotyReceived(player1, zł(10)))
-        eventStream.push(ZlotyReceived(player2, zł(12)))
-        player3?.let { eventStream.push(ZlotyReceived(it, zł(14))) }
-        player4?.let { eventStream.push(ZlotyReceived(it, zł(16))) }
+        eventStream.push(ZłotyReceived(player1, 10))
+        eventStream.push(ZłotyReceived(player2, 12))
+        player3?.let { eventStream.push(ZłotyReceived(it, 14)) }
+        player4?.let { eventStream.push(ZłotyReceived(it, 16)) }
     }
 
     fun placeWorkerInMine(player: PlayerColor, at: PositionInMine) = onlyInPlayersTurn(player) {
@@ -91,19 +87,38 @@ class MagnumSal(private val eventStream: EventStream,
     }
 
     fun mine(player: PlayerColor, at: PositionInMine, saltToMine: Salts) = onlyInPlayersTurn(player) {
-        transitionRequires("you to have a miner at $at") {
-            hasWorkerAt(player, at)
-        }
         transitionRequires("you to mine from a MineChamber") {
             at.isInACorridor()
-        }
-        transitionRequires("you to have enough rested miners at $at") {
-            strengthAt(player, at) >= saltToMine.size
         }
         transitionRequires("there to be $saltToMine in $at") {
             saltIsAvailableAt(saltToMine, at)
         }
+        transitionRequires("you to have a miner at $at") {
+            hasWorkerAt(player, at)
+        }
+        transitionRequires("you to have enough rested miners at $at") {
+            strengthAt(player, at) >= saltToMine.size
+        }
+        transitionRequires("you to have enough złoty to pay for transport bringing your mined salt out of the mine") {
+            złotyForPlayer(player) >= transportersNeeded(player, at)
+        }
         eventStream.push(SaltMined(player, at, saltToMine))
+    }
+
+    private fun transportersNeeded(player: PlayerColor, at: PositionInMine): Int {
+        val positionsTheSaltWillTravel = at.positionsUntilTheTop()
+        return miners.filter { it.player != player }
+                .count { positionsTheSaltWillTravel.contains(it.at) }
+    }
+
+    private fun złotyForPlayer(player: PlayerColor): Złoty {
+        val złotyReceived = eventStream.filterEvents<ZłotyReceived>()
+                .filter { it.player == player }
+                .sumBy { it.złoty }
+        val złotyPaid = eventStream.filterEvents<ZlotyPaid>()
+                .filter { it.player == player }
+                .sumBy { it.złoty }
+        return złotyReceived - złotyPaid
     }
 
     private fun saltIsAvailableAt(saltToMine: Salts, at: PositionInMine): Boolean =
