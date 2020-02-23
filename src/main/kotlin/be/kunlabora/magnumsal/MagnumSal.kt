@@ -114,7 +114,9 @@ class MagnumSal(private val eventStream: EventStream,
         transitionRequires("you to have enough złoty to pay for transport bringing your mined salt out of the mine") {
             złotyForPlayer(player) >= transportersNeeded(player, at)
         }
+        val minersThatWillGetTired = strengthAt(player, at)
         eventStream.push(SaltMined(player, at, saltToMine))
+        eventStream.push(MinersGotTired(player, at, minersThatWillGetTired))
     }
 
     private fun transportersNeeded(player: PlayerColor, at: PositionInMine): Int {
@@ -152,16 +154,10 @@ class MagnumSal(private val eventStream: EventStream,
     private fun waterRemainingInChamber(at: PositionInMine) =
             revealedMineChambers.single { it.at == at }.tile.waterCubes
 
-    //TODO: replace by firing a MinerGotTired event after successfully mining (and holding back water). Might be a good event migration exercise.
-    private fun tiredWorkersAt(player: PlayerColor, at: PositionInMine): Int {
-        val playersSaltMiningActions = eventStream.filterEvents<SaltMined>()
-                .filter { it.from == at && it.player == player }
-        val minersTiredFromMining = playersSaltMiningActions
-                .fold(0) { acc, it -> acc + it.saltMined.size }
-        val minersTiredFromHoldingBackWater = playersSaltMiningActions
-                .count() * waterRemainingInChamber(at)
-        return minersTiredFromMining + minersTiredFromHoldingBackWater
-    }
+    private fun tiredWorkersAt(player: PlayerColor, at: PositionInMine) =
+            eventStream.filterEvents<MinersGotTired>()
+                    .filter { it.player == player && it.from == at }
+                    .sumBy { it.tiredMiners }
 
     private fun revealMineChamberIfPossible(at: PositionInMine) {
         if (at.isInACorridor() && isNotRevealed(at)) {
