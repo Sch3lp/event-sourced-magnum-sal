@@ -122,7 +122,9 @@ class MagnumSal(private val eventStream: EventStream,
     private fun transportersNeeded(player: PlayerColor, at: PositionInMine): Int {
         val positionsTheSaltWillTravel = at.positionsUntilTheTop()
         return miners.filter { it.player != player }
-                .count { positionsTheSaltWillTravel.contains(it.at) }
+                .filter { positionsTheSaltWillTravel.contains(it.at) }
+                .debug { "${player}'s mine action requires transport across $it" }
+                .count()
     }
 
     private fun złotyForPlayer(player: PlayerColor): Złoty {
@@ -132,7 +134,7 @@ class MagnumSal(private val eventStream: EventStream,
         val złotyPaid = eventStream.filterEvents<ZlotyPaid>()
                 .filter { it.player == player }
                 .sumBy { it.złoty }
-        return złotyReceived - złotyPaid
+        return (złotyReceived - złotyPaid).debug { "$player currently has ${it}zł" }
     }
 
     private fun saltIsAvailableAt(saltToMine: Salts, at: PositionInMine): Boolean =

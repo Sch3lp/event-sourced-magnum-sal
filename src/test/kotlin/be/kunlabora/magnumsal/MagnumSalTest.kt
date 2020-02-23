@@ -634,11 +634,24 @@ class MagnumSalTest {
                     .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
                     .withFourWhiteMinersAtFirstRightMineChamber()
                     .withPlayerHaving(White, 0)
+                    .withDebugger()
                     .build()
 
             assertThatExceptionOfType(IllegalTransitionException::class.java)
                     .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(WHITE)) }
                     .withMessage("Transition requires you to have enough złoty to pay for transport bringing your mined salt out of the mine")
+        }
+
+        @Test
+        fun `Can mine from a Mine Chamber when player has just enough money to pay the chain`() {
+            val magnumSal = TestMagnumSal(eventStream)
+                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
+                    .withFourWhiteMinersAtFirstRightMineChamber()
+                    .withPlayerHaving(White, 2) //White is not at(1,0) or at(2,0)
+                    .withDebugger()
+                    .build()
+
+            magnumSal.mine(White, at(2, 1), Salts(WHITE))
         }
     }
 }
