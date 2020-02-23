@@ -4,14 +4,16 @@ import be.kunlabora.magnumsal.*
 import be.kunlabora.magnumsal.MagnumSalEvent.*
 import be.kunlabora.magnumsal.PlayerColor.*
 import be.kunlabora.magnumsal.PositionInMine.Companion.at
-import be.kunlabora.magnumsal.gamepieces.AllMineChamberTiles
-import be.kunlabora.magnumsal.gamepieces.Salt.*
+import be.kunlabora.magnumsal.gamepieces.Salt.BROWN
+import be.kunlabora.magnumsal.gamepieces.Salt.GREEN
 import be.kunlabora.magnumsal.gamepieces.Salts
 import be.kunlabora.magnumsal.migration.read.readEventLog
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class MigrationTest {
+    @Disabled
     @Test
     fun `migrate | returns a new EventStream with MinersGotTired events`() {
         val migratedEventStream = migrate(readEventLog())

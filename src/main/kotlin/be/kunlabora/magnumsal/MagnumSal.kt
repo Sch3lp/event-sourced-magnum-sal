@@ -5,18 +5,30 @@ import be.kunlabora.magnumsal.MinerMovement.PlaceMiner
 import be.kunlabora.magnumsal.MinerMovement.RemoveMiner
 import be.kunlabora.magnumsal.exception.transitionRequires
 import be.kunlabora.magnumsal.gamepieces.*
+import com.fasterxml.jackson.annotation.JsonTypeInfo
+import com.fasterxml.jackson.annotation.JsonTypeName
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter.ofPattern
 
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 sealed class MagnumSalEvent : Event {
+    @JsonTypeName("PlayerJoined")
     data class PlayerJoined(val name: String, val color: PlayerColor) : MagnumSalEvent()
+    @JsonTypeName("PlayerOrderDetermined")
     data class PlayerOrderDetermined(val player1: PlayerColor, val player2: PlayerColor, val player3: PlayerColor? = null, val player4: PlayerColor? = null) : MagnumSalEvent()
+    @JsonTypeName("ZłotyReceived")
     data class ZłotyReceived(val player: PlayerColor, val złoty: Złoty) : MagnumSalEvent()
+    @JsonTypeName("ZlotyPaid")
     data class ZlotyPaid(val player: PlayerColor, val złoty: Złoty) : MagnumSalEvent()
+    @JsonTypeName("MinerPlaced")
     data class MinerPlaced(val player: PlayerColor, val at: PositionInMine) : MagnumSalEvent()
+    @JsonTypeName("MineChamberRevealed")
     data class MineChamberRevealed(val at: PositionInMine, val tile: MineChamberTile) : MagnumSalEvent()
+    @JsonTypeName("MinerRemoved")
     data class MinerRemoved(val player: PlayerColor, val at: PositionInMine) : MagnumSalEvent()
+    @JsonTypeName("SaltMined")
     data class SaltMined(val player: PlayerColor, val from: PositionInMine, val saltMined: Salts) : MagnumSalEvent()
+    @JsonTypeName("MinersGotTired")
     data class MinersGotTired(val player: PlayerColor, val from: PositionInMine, val tiredMiners: Int) : MagnumSalEvent()
 }
 
