@@ -4,11 +4,9 @@ import be.kunlabora.magnumsal.MagnumSalEvent.*
 import be.kunlabora.magnumsal.PlayerColor.*
 import be.kunlabora.magnumsal.PositionInMine.Companion.at
 import be.kunlabora.magnumsal.exception.IllegalTransitionException
-import be.kunlabora.magnumsal.gamepieces.AllMineChamberTiles
-import be.kunlabora.magnumsal.gamepieces.Level
-import be.kunlabora.magnumsal.gamepieces.MineChamberTile
+import be.kunlabora.magnumsal.gamepieces.*
 import be.kunlabora.magnumsal.gamepieces.Salt.*
-import be.kunlabora.magnumsal.gamepieces.Salts
+import be.kunlabora.magnumsal.gamepieces.Zloty.Companion.zł
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatExceptionOfType
 import org.junit.jupiter.api.BeforeEach
@@ -132,6 +130,50 @@ class MagnumSalTest {
             magnumSal.determinePlayOrder(Orange, Black, Purple, White)
 
             assertThat(eventStream).contains(PlayerOrderDetermined(Orange, Black, Purple, White))
+        }
+
+        @Test
+        fun `Starting zł are doled out after order is determined`() {
+            val magnumSal = TestMagnumSal(eventStream)
+                    .withPlayers("Bruno" using White,
+                            "Tim" using Black,
+                            "Gargamel" using Orange,
+                            "Snarf" using Purple)
+                    .build()
+
+            magnumSal.determinePlayOrder(Orange, Black, Purple, White)
+
+            assertThat(eventStream)
+                    .containsExactly(
+                            PlayerJoined("Bruno", White),
+                            PlayerJoined("Tim", Black),
+                            PlayerJoined("Gargamel", Orange),
+                            PlayerJoined("Snarf", Purple),
+                            PlayerOrderDetermined(Orange, Black, Purple, White),
+                            ZlotyReceived(Orange, zł(10)),
+                            ZlotyReceived(Black, zł(12)),
+                            ZlotyReceived(Purple, zł(14)),
+                            ZlotyReceived(White, zł(16))
+                    )
+        }
+
+        @Test
+        fun `Starting zł are doled out only to participating players after order is determined`() {
+            val magnumSal = TestMagnumSal(eventStream)
+                    .withPlayers("Bruno" using White,
+                            "Tim" using Black)
+                    .build()
+
+            magnumSal.determinePlayOrder(Black, White)
+
+            assertThat(eventStream)
+                    .containsExactly(
+                            PlayerJoined("Bruno", White),
+                            PlayerJoined("Tim", Black),
+                            PlayerOrderDetermined(Black, White),
+                            ZlotyReceived(Black, zł(10)),
+                            ZlotyReceived(White, zł(12))
+                    )
         }
     }
 
