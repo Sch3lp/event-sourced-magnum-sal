@@ -4,10 +4,8 @@ import be.kunlabora.magnumsal.MagnumSalEvent.*
 import be.kunlabora.magnumsal.MinerMovement.PlaceMiner
 import be.kunlabora.magnumsal.MinerMovement.RemoveMiner
 import be.kunlabora.magnumsal.exception.transitionRequires
-import be.kunlabora.magnumsal.gamepieces.AllMineChamberTiles
-import be.kunlabora.magnumsal.gamepieces.Level
-import be.kunlabora.magnumsal.gamepieces.MineChamberTile
-import be.kunlabora.magnumsal.gamepieces.Salts
+import be.kunlabora.magnumsal.gamepieces.*
+import be.kunlabora.magnumsal.gamepieces.Zloty.Companion.zł
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.fasterxml.jackson.annotation.JsonTypeName
 import java.time.LocalDateTime
@@ -19,6 +17,8 @@ sealed class MagnumSalEvent : Event {
     data class PlayerJoined(val name: String, val color: PlayerColor) : MagnumSalEvent()
     @JsonTypeName("PlayerOrderDetermined")
     data class PlayerOrderDetermined(val player1: PlayerColor, val player2: PlayerColor, val player3: PlayerColor? = null, val player4: PlayerColor? = null) : MagnumSalEvent()
+    @JsonTypeName("ZlotyReceived")
+    data class ZlotyReceived(val player: PlayerColor, val zloty: Zloty) : MagnumSalEvent()
     @JsonTypeName("MinerPlaced")
     data class MinerPlaced(val player: PlayerColor, val at: PositionInMine) : MagnumSalEvent()
     @JsonTypeName("MineChamberRevealed")
@@ -74,6 +74,10 @@ class MagnumSal(private val eventStream: EventStream,
             colors.intersect(players).size == players.size
         }
         eventStream.push(PlayerOrderDetermined(player1, player2, player3, player4))
+        eventStream.push(ZlotyReceived(player1, zł(10)))
+        eventStream.push(ZlotyReceived(player2, zł(12)))
+        player3?.let { eventStream.push(ZlotyReceived(it, zł(14))) }
+        player4?.let { eventStream.push(ZlotyReceived(it, zł(16))) }
     }
 
     fun placeWorkerInMine(player: PlayerColor, at: PositionInMine) = onlyInPlayersTurn(player) {
