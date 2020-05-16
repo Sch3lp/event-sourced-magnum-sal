@@ -121,10 +121,10 @@ class MagnumSal(private val eventStream: EventStream,
 
     private fun transportersNeeded(player: PlayerColor, at: PositionInMine): Int {
         val positionsTheSaltWillTravel = at.positionsUntilTheTop()
-        return miners.filter { it.player != player }
-                .filter { positionsTheSaltWillTravel.contains(it.at) }
+        return miners.filter { it.at in positionsTheSaltWillTravel }
                 .debug { "${player}'s mine action requires transport across $it" }
-                .count()
+                .groupBy { it.at }
+                .count { (_, miners) -> player !in miners.map { it.player } }
     }
 
     private fun złotyForPlayer(player: PlayerColor): Złoty {

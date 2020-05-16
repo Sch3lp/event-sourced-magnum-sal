@@ -538,48 +538,6 @@ class MagnumSalTest {
                     .doesNotContain(SaltMined(White, at(2, 1), Salts(BROWN)))
         }
 
-        //Mining requires strength
-        @Test
-        fun `Cannot mine from a Mine Chamber with water when not enough own miners present`() {
-            val magnumSal = TestMagnumSal(eventStream)
-                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN), 1))
-                    .withPlayersInOrder("Bruno" using White, "Tim" using Black)
-                    .build()
-            magnumSal.placeWorkerInMine(White, at(1, 0))
-            magnumSal.placeWorkerInMine(Black, at(2, 0))
-            magnumSal.placeWorkerInMine(White, at(2, 1))
-
-            assertThatExceptionOfType(IllegalTransitionException::class.java)
-                    .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(BROWN)) }
-                    .withMessage("Transition requires you to have enough rested miners at ${at(2, 1)}")
-        }
-
-        @Test
-        fun `Cannot mine from a Mine Chamber with as many water as there are own miners`() {
-            val magnumSal = TestMagnumSal(eventStream)
-                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN), 4))
-                    .withFourWhiteMinersAtFirstRightMineChamber()
-                    .build()
-
-            assertThatExceptionOfType(IllegalTransitionException::class.java)
-                    .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(BROWN)) }
-                    .withMessage("Transition requires you to have enough rested miners at ${at(2, 1)}")
-        }
-
-        @Test
-        fun `Mining from a Mine Chamber without water and with own miners present allows to mine an amount of salt equal to own miners`() {
-            val magnumSal = TestMagnumSal(eventStream)
-                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(GREEN, GREEN, WHITE), 1))
-                    .withFourWhiteMinersAtFirstRightMineChamber()
-                    .build()
-
-            assertThat(Miners.from(eventStream).filter { it.player == White && it.at == at(2, 1) }).hasSize(4)
-
-            magnumSal.mine(White, at(2, 1), Salts(GREEN, GREEN, WHITE))
-
-            assertThat(eventStream).containsOnlyOnce(SaltMined(White, at(2, 1), Salts(GREEN, GREEN, WHITE)))
-        }
-
         @Test
         fun `Cannot mine the same salt from the same Mine Chamber twice`() {
             val magnumSal = TestMagnumSal(eventStream)
@@ -594,64 +552,112 @@ class MagnumSalTest {
                     .withMessage("Transition requires there to be 1 White salt in ${at(2, 1)}")
         }
 
-        //Mining tires miners
-        @Test
-        fun `Mining from a Mine Chamber without water, tires miners that mined salt`() {
-            val magnumSal = TestMagnumSal(eventStream)
-                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
-                    .withFourWhiteMinersAtFirstRightMineChamber()
-                    .withDebugger()
-                    .build()
+        @Nested
+        inner class `Mining requires strength` {
+            @Test
+            fun `Cannot mine from a Mine Chamber with water when not enough own miners present`() {
+                val magnumSal = TestMagnumSal(eventStream)
+                        .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN), 1))
+                        .withPlayersInOrder("Bruno" using White, "Tim" using Black)
+                        .build()
+                magnumSal.placeWorkerInMine(White, at(1, 0))
+                magnumSal.placeWorkerInMine(Black, at(2, 0))
+                magnumSal.placeWorkerInMine(White, at(2, 1))
 
-            magnumSal.mine(White, at(2, 1), Salts(BROWN, BROWN, GREEN, GREEN))
+                assertThatExceptionOfType(IllegalTransitionException::class.java)
+                        .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(BROWN)) }
+                        .withMessage("Transition requires you to have enough rested miners at ${at(2, 1)}")
+            }
 
-            assertThatExceptionOfType(IllegalTransitionException::class.java)
-                    .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(WHITE, WHITE)) }
-                    .withMessage("Transition requires you to have enough rested miners at ${at(2, 1)}")
+            @Test
+            fun `Cannot mine from a Mine Chamber with as many water as there are own miners`() {
+                val magnumSal = TestMagnumSal(eventStream)
+                        .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN), 4))
+                        .withFourWhiteMinersAtFirstRightMineChamber()
+                        .build()
+
+                assertThatExceptionOfType(IllegalTransitionException::class.java)
+                        .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(BROWN)) }
+                        .withMessage("Transition requires you to have enough rested miners at ${at(2, 1)}")
+            }
+
+            @Test
+            fun `Mining from a Mine Chamber without water and with own miners present allows to mine an amount of salt equal to own miners`() {
+                val magnumSal = TestMagnumSal(eventStream)
+                        .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(GREEN, GREEN, WHITE), 1))
+                        .withFourWhiteMinersAtFirstRightMineChamber()
+                        .build()
+
+                assertThat(Miners.from(eventStream).filter { it.player == White && it.at == at(2, 1) }).hasSize(4)
+
+                magnumSal.mine(White, at(2, 1), Salts(GREEN, GREEN, WHITE))
+
+                assertThat(eventStream).containsOnlyOnce(SaltMined(White, at(2, 1), Salts(GREEN, GREEN, WHITE)))
+            }
         }
 
-        @Test
-        fun `Mining from a Mine Chamber with water, tires miners that mined salt and had to hold back the water`() {
-            val magnumSal = TestMagnumSal(eventStream)
-                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 2))
-                    .withFourWhiteMinersAtFirstRightMineChamber()
-                    .build()
+        @Nested
+        inner class `Mining Tires Miners` {
+            @Test
+            fun `Mining from a Mine Chamber without water, tires miners that mined salt`() {
+                val magnumSal = TestMagnumSal(eventStream)
+                        .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
+                        .withFourWhiteMinersAtFirstRightMineChamber()
+                        .withDebugger()
+                        .build()
 
-            // tire 3 workers: 1 from mining and 2 from holding back water
-            magnumSal.mine(White, at(2, 1), Salts(BROWN))
+                magnumSal.mine(White, at(2, 1), Salts(BROWN, BROWN, GREEN, GREEN))
 
-            // since the water wasn't pumped out it remains, so strength required is 2 water + 1 salt = 3,
-            // but there should only be 1 rested miner left
-            assertThatExceptionOfType(IllegalTransitionException::class.java)
-                    .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(WHITE)) }
-                    .withMessage("Transition requires you to have enough rested miners at ${at(2, 1)}")
+                assertThatExceptionOfType(IllegalTransitionException::class.java)
+                        .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(WHITE, WHITE)) }
+                        .withMessage("Transition requires you to have enough rested miners at ${at(2, 1)}")
+            }
+
+            @Test
+            fun `Mining from a Mine Chamber with water, tires miners that mined salt and had to hold back the water`() {
+                val magnumSal = TestMagnumSal(eventStream)
+                        .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 2))
+                        .withFourWhiteMinersAtFirstRightMineChamber()
+                        .build()
+
+                // tire 3 workers: 1 from mining and 2 from holding back water
+                magnumSal.mine(White, at(2, 1), Salts(BROWN))
+
+                // since the water wasn't pumped out it remains, so strength required is 2 water + 1 salt = 3,
+                // but there should only be 1 rested miner left
+                assertThatExceptionOfType(IllegalTransitionException::class.java)
+                        .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(WHITE)) }
+                        .withMessage("Transition requires you to have enough rested miners at ${at(2, 1)}")
+            }
         }
 
-        //Mining costs złoty
-        @Test
-        fun `Cannot mine from a Mine Chamber when player does not have enough money to pay the chain`() {
-            val magnumSal = TestMagnumSal(eventStream)
-                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
-                    .withFourWhiteMinersAtFirstRightMineChamber()
-                    .withPlayerHaving(White, 0)
-                    .withDebugger()
-                    .build()
+        @Nested
+        inner class `Mining costs złoty` {
+            @Test
+            fun `Cannot mine from a Mine Chamber when player does not have enough money to pay the chain`() {
+                val magnumSal = TestMagnumSal(eventStream)
+                        .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
+                        .withFourWhiteMinersAtFirstRightMineChamber()
+                        .withPlayerHaving(White, 0)
+                        .withDebugger()
+                        .build()
 
-            assertThatExceptionOfType(IllegalTransitionException::class.java)
-                    .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(WHITE)) }
-                    .withMessage("Transition requires you to have enough złoty to pay for transport bringing your mined salt out of the mine")
-        }
+                assertThatExceptionOfType(IllegalTransitionException::class.java)
+                        .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(WHITE)) }
+                        .withMessage("Transition requires you to have enough złoty to pay for transport bringing your mined salt out of the mine")
+            }
 
-        @Test
-        fun `Can mine from a Mine Chamber when player has just enough money to pay the chain`() {
-            val magnumSal = TestMagnumSal(eventStream)
-                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
-                    .withFourWhiteMinersAtFirstRightMineChamber()
-                    .withPlayerHaving(White, 2) //White is not at(1,0) or at(2,0)
-                    .withDebugger()
-                    .build()
+            @Test
+            fun `Can mine from a Mine Chamber when player has just enough money to pay the chain`() {
+                val magnumSal = TestMagnumSal(eventStream)
+                        .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
+                        .withFourWhiteMinersAtFirstRightMineChamber()
+                        .withPlayerHaving(White, 2) //White is not at(1,0) or at(2,0)
+                        .withDebugger()
+                        .build()
 
-            magnumSal.mine(White, at(2, 1), Salts(WHITE))
+                magnumSal.mine(White, at(2, 1), Salts(WHITE))
+            }
         }
     }
 }
