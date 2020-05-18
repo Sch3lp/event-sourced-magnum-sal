@@ -174,6 +174,9 @@ class PositionInMineTest {
         assertThat(at(2,-1).next()).isEqualTo(at(2,-2))
         assertThat(at(4,-1).next()).isEqualTo(at(4,-2))
         assertThat(at(6,-1).next()).isEqualTo(at(6,-2))
+
+        assertThatExceptionOfType(IllegalArgumentException::class.java)
+                .isThrownBy { at(2,4).next() }
     }
 
     @Test
