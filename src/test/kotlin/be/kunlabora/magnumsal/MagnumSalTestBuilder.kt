@@ -191,9 +191,7 @@ fun visualize(miners: Miners) {
 }
 
 fun visualizeZloty(eventStream: EventStream) {
-    ZlotyPerPlayer(eventStream).all().forEach { (player, zloty) ->
-        println("${player.icon()}: $zloty zł")
-    }
+    println("Złoty per player: " + ZlotyPerPlayer(eventStream).all().mapValues { (player, zloty) -> "${player.icon()}: $zloty zł" }.values.joinToString())
 }
 
 fun MagnumSal.visualizeMiners() = this.visualize { eventStream -> visualize(Miners.from(eventStream)) }

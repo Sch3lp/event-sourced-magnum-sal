@@ -129,8 +129,11 @@ class MagnumSal(private val eventStream: EventStream,
         transitionRequires("you to have enough rested miners at $at") {
             strengthAt(player, at) >= saltToMine.size
         }
-        transitionRequires("you to have enough złoty to pay for transport bringing your mined salt out of the mine") {
+        transitionRequires("you to have enough złoty to pay for salt transport bringing your mined salt out of the mine") {
             zlotyForPlayer(player) >= transportersNeeded(player, at)
+        }
+        transitionRequires("you not to pay more złoty for salt transport than is required") {
+            transportCost?.let { it.totalToPay() <= transportersNeeded(player, at) } ?: true
         }
         val minersThatWillGetTired = strengthAt(player, at)
         transportCost?.executeTransactions()?.forEach { eventStream.push(it.from); eventStream.push(it.to) }
@@ -141,9 +144,10 @@ class MagnumSal(private val eventStream: EventStream,
     private fun transportersNeeded(player: PlayerColor, at: PositionInMine): Int {
         val positionsTheSaltWillTravel = at.positionsUntilTheTop()
         return miners.filter { it.at in positionsTheSaltWillTravel }
-                .debug { "${player}'s mine action requires transport across $it" }
+                .debug { "${player}'s mine action requires transport across $it.at" }
                 .groupBy { it.at }
                 .count { (_, miners) -> player !in miners.map { it.player } }
+                .debug { "Miners to pay for transport: $it" }
     }
 
     private fun zlotyForPlayer(player: PlayerColor): Zloty {
@@ -223,6 +227,7 @@ class TransportCost private constructor(private val from: PlayerColor, private v
     }
 
     fun executeTransactions() = paymentPerPlayer.map { (to, amount) -> transaction(from, to, amount) }
+    fun totalToPay(): Zloty = paymentPerPlayer.values.sum()
 
     companion object TransportCosts {
         fun transportCosts(from: PlayerColor): TransportCost = TransportCost(from)
