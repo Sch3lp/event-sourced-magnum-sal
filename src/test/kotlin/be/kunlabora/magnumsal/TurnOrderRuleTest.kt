@@ -1,5 +1,6 @@
 package be.kunlabora.magnumsal
 
+import be.kunlabora.magnumsal.MagnumSalEvent.MinerMovementEvent.MinerPlaced
 import be.kunlabora.magnumsal.PlayerColor.*
 import be.kunlabora.magnumsal.PositionInMine.Companion.at
 import be.kunlabora.magnumsal.exception.IllegalTransitionException
@@ -70,7 +71,7 @@ class TurnOrderRuleTest {
                 }
                 .withMessage("Transition requires it to be your turn")
 
-        assertThat(eventStream).containsOnlyOnce(MagnumSalEvent.MinerPlaced(Orange, at(1, 0)))
+        assertThat(eventStream).containsOnlyOnce(MinerPlaced(Orange, at(1, 0)))
     }
 
     @Test
@@ -92,7 +93,7 @@ class TurnOrderRuleTest {
                 }
                 .withMessage("Transition requires it to be your turn")
 
-        assertThat(eventStream).containsOnlyOnce(MagnumSalEvent.MinerPlaced(Purple, at(1, 0)))
+        assertThat(eventStream).containsOnlyOnce(MinerPlaced(Purple, at(1, 0)))
     }
 
     @Test

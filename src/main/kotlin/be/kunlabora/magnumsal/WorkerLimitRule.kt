@@ -1,5 +1,7 @@
 package be.kunlabora.magnumsal
 
+import be.kunlabora.magnumsal.MagnumSalEvent.MinerMovementEvent.MinerPlaced
+import be.kunlabora.magnumsal.MagnumSalEvent.MinerMovementEvent.MinerRemoved
 import be.kunlabora.magnumsal.exception.transitionRequires
 
 class WorkerLimitRule(private val eventStream: EventStream) {
@@ -14,9 +16,9 @@ class WorkerLimitRule(private val eventStream: EventStream) {
         get() = players.count()
 
     private val minersPlaced
-        get() = eventStream.filterEvents<MagnumSalEvent.MinerPlaced>()
+        get() = eventStream.filterEvents<MinerPlaced>()
     private val minersRemoved
-        get() = eventStream.filterEvents<MagnumSalEvent.MinerRemoved>()
+        get() = eventStream.filterEvents<MinerRemoved>()
 
 
     fun requirePlayerToHaveEnoughWorkers(player: PlayerColor) {

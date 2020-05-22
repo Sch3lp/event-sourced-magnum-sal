@@ -1,6 +1,8 @@
 package be.kunlabora.magnumsal
 
 import be.kunlabora.magnumsal.MagnumSalEvent.*
+import be.kunlabora.magnumsal.MagnumSalEvent.MinerMovementEvent.MinerPlaced
+import be.kunlabora.magnumsal.MagnumSalEvent.MinerMovementEvent.MinerRemoved
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyPaid
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyReceived
 import be.kunlabora.magnumsal.MinerMovement.PlaceMiner
@@ -28,14 +30,16 @@ sealed class MagnumSalEvent : Event {
         data class ZlotyPaid(private val p: PlayerColor, private val z: Zloty) : PaymentEvent(p, z)
     }
 
-    @JsonTypeName("MinerPlaced")
-    data class MinerPlaced(val player: PlayerColor, val at: PositionInMine) : MagnumSalEvent()
+    sealed class MinerMovementEvent(val player: PlayerColor, val at: PositionInMine) : MagnumSalEvent() {
+        @JsonTypeName("MinerPlaced")
+        data class MinerPlaced(private val _player: PlayerColor, private val _at: PositionInMine) : MinerMovementEvent(_player,_at)
+
+        @JsonTypeName("MinerRemoved")
+        data class MinerRemoved(private val _player: PlayerColor, private val _at: PositionInMine) : MinerMovementEvent(_player, _at)
+    }
 
     @JsonTypeName("MineChamberRevealed")
     data class MineChamberRevealed(val at: PositionInMine, val tile: MineChamberTile) : MagnumSalEvent()
-
-    @JsonTypeName("MinerRemoved")
-    data class MinerRemoved(val player: PlayerColor, val at: PositionInMine) : MagnumSalEvent()
 
     @JsonTypeName("SaltMined")
     data class SaltMined(val player: PlayerColor, val from: PositionInMine, val saltMined: Salts) : MagnumSalEvent()

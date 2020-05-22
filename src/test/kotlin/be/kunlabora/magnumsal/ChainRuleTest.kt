@@ -1,7 +1,7 @@
 package be.kunlabora.magnumsal
 
-import be.kunlabora.magnumsal.MagnumSalEvent.MinerPlaced
-import be.kunlabora.magnumsal.MagnumSalEvent.MinerRemoved
+import be.kunlabora.magnumsal.MagnumSalEvent.MinerMovementEvent.MinerPlaced
+import be.kunlabora.magnumsal.MagnumSalEvent.MinerMovementEvent.MinerRemoved
 import be.kunlabora.magnumsal.MinerMovement.PlaceMiner
 import be.kunlabora.magnumsal.MinerMovement.RemoveMiner
 import be.kunlabora.magnumsal.PlayerColor.Black
