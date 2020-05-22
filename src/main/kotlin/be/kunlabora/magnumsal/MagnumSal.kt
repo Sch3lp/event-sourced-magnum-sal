@@ -117,6 +117,12 @@ class MagnumSal(private val eventStream: EventStream,
     }
 
     fun mine(player: PlayerColor, at: PositionInMine, saltToMine: Salts, transportCost: TransportCost? = null) = onlyInPlayersTurn(player) {
+        orderMinersToMine(player, at, saltToMine)
+        handleSaltTransport(player, at, transportCost)
+        eventStream.push(SaltMined(player, at, saltToMine))
+    }
+
+    private fun orderMinersToMine(player: PlayerColor, at: PositionInMine, saltToMine: Salts) {
         transitionRequires("you to mine from a MineChamber") {
             at.isInACorridor()
         }
@@ -129,16 +135,18 @@ class MagnumSal(private val eventStream: EventStream,
         transitionRequires("you to have enough rested miners at $at") {
             strengthAt(player, at) >= saltToMine.size
         }
+        val minersThatWillGetTired = strengthAt(player, at)
+        eventStream.push(MinersGotTired(player, at, minersThatWillGetTired))
+    }
+
+    private fun handleSaltTransport(player: PlayerColor, at: PositionInMine, transportCost: TransportCost?) {
         transitionRequires("you to have enough złoty to pay for salt transport bringing your mined salt out of the mine") {
             zlotyForPlayer(player) >= transportersNeeded(player, at)
         }
         transitionRequires("you not to pay more złoty for salt transport than is required") {
-            transportCost?.let { it.totalToPay() <= transportersNeeded(player, at) } ?: true
+            transportCost == null || transportCost.totalToPay() <= transportersNeeded(player, at)
         }
-        val minersThatWillGetTired = strengthAt(player, at)
         transportCost?.executeTransactions()?.forEach { eventStream.push(it.from); eventStream.push(it.to) }
-        eventStream.push(SaltMined(player, at, saltToMine))
-        eventStream.push(MinersGotTired(player, at, minersThatWillGetTired))
     }
 
     private fun transportersNeeded(player: PlayerColor, at: PositionInMine): Int {
