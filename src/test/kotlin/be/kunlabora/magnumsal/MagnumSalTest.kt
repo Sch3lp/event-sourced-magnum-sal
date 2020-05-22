@@ -1,8 +1,11 @@
 package be.kunlabora.magnumsal
 
 import be.kunlabora.magnumsal.MagnumSalEvent.*
+import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyPaid
+import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyReceived
 import be.kunlabora.magnumsal.PlayerColor.*
 import be.kunlabora.magnumsal.PositionInMine.Companion.at
+import be.kunlabora.magnumsal.TransportCost.TransportCosts.transportCosts
 import be.kunlabora.magnumsal.exception.IllegalTransitionException
 import be.kunlabora.magnumsal.gamepieces.*
 import be.kunlabora.magnumsal.gamepieces.Salt.*
@@ -148,10 +151,10 @@ class MagnumSalTest {
                             PlayerJoined("Gargamel", Orange),
                             PlayerJoined("Snarf", Purple),
                             PlayerOrderDetermined(Orange, Black, Purple, White),
-                            ZłotyReceived(Orange, 10),
-                            ZłotyReceived(Black, 12),
-                            ZłotyReceived(Purple, 14),
-                            ZłotyReceived(White, 16)
+                            ZlotyReceived(Orange, 10),
+                            ZlotyReceived(Black, 12),
+                            ZlotyReceived(Purple, 14),
+                            ZlotyReceived(White, 16)
                     )
         }
 
@@ -169,8 +172,8 @@ class MagnumSalTest {
                             PlayerJoined("Bruno", White),
                             PlayerJoined("Tim", Black),
                             PlayerOrderDetermined(Black, White),
-                            ZłotyReceived(Black, 10),
-                            ZłotyReceived(White, 12)
+                            ZlotyReceived(Black, 10),
+                            ZlotyReceived(White, 12)
                     )
         }
     }
@@ -656,10 +659,16 @@ class MagnumSalTest {
                         .withDebugger()
                         .build()
                 magnumSal.removeWorkerFromMine(White, at(1,0))
-
-                magnumSal.mine(White, at(2, 1), Salts(WHITE))
-
                 magnumSal.visualizeMiners()
+                magnumSal.visualizeZloty()
+
+                magnumSal.mine(White, at(2, 1), Salts(WHITE), with(transportCosts(White)){
+                    pay(Black, 1)
+                    pay(Black, 1)
+                })
+
+                assertThat(eventStream).contains(ZlotyPaid(White, 2), ZlotyReceived(Black, 2))
+                magnumSal.visualizeZloty()
             }
         }
     }

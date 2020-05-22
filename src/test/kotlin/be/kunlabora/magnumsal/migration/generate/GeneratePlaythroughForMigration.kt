@@ -31,7 +31,7 @@ private fun playTheGame(): EventStream {
         val playerMinersAt = Miners.from(eventStream).count { it.player == player && it.at == at }
         val strength = playerMinersAt - water
         val saltToMine = Salts(salt.take(strength)).also { println("$player tries to mine $it at $at with $strength miners") }
-        if (saltToMine.isNotEmpty()) magnumSal.mine(player, at, saltToMine)
+        if (saltToMine.isNotEmpty()) magnumSal.mine(player, at, saltToMine, null)
     }
 
     magnumSal.placeWorkerInMine(White, at(1, 0))

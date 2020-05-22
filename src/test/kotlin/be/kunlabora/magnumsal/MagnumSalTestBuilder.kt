@@ -1,12 +1,13 @@
 package be.kunlabora.magnumsal
 
-import be.kunlabora.magnumsal.MagnumSalEvent.ZlotyPaid
-import be.kunlabora.magnumsal.MagnumSalEvent.ZłotyReceived
+import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent
+import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyPaid
+import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyReceived
 import be.kunlabora.magnumsal.PlayerColor.*
 import be.kunlabora.magnumsal.PositionInMine.Companion.at
 import be.kunlabora.magnumsal.gamepieces.AllMineChamberTiles
 import be.kunlabora.magnumsal.gamepieces.MineChamberTile
-import be.kunlabora.magnumsal.gamepieces.Złoty
+import be.kunlabora.magnumsal.gamepieces.Zloty
 
 data class Player(val name: PlayerName, val color: PlayerColor)
 
@@ -162,13 +163,13 @@ fun TestMagnumSal.withOnlyMineChamberTilesOf(tile: MineChamberTile): TestMagnumS
     return this
 }
 
-fun TestMagnumSal.withPlayerHaving(player: PlayerColor, zł: Złoty): TestMagnumSal {
-    val currentTotalZł = this.eventStream.filterEvents<ZłotyReceived>()
+fun TestMagnumSal.withPlayerHaving(player: PlayerColor, zł: Zloty): TestMagnumSal {
+    val currentTotalZł = this.eventStream.filterEvents<ZlotyReceived>()
             .filter { it.player == player }
-            .sumBy { it.złoty }
+            .sumBy { it.zloty }
     when {
         currentTotalZł > zł -> this.eventStream.push(ZlotyPaid(player, currentTotalZł - zł))
-        currentTotalZł < zł -> this.eventStream.push(ZłotyReceived(player, currentTotalZł - zł))
+        currentTotalZł < zł -> this.eventStream.push(ZlotyReceived(player, currentTotalZł - zł))
     }
     return this
 }
@@ -189,11 +190,30 @@ fun visualize(miners: Miners) {
     println("${"#".repeat(25)} MineShaft End ${"#".repeat(25)}")
 }
 
-fun MagnumSal.visualizeMiners() = this.currentState { eventStream -> visualize(Miners.from(eventStream)) }
+fun visualizeZloty(eventStream: EventStream) {
+    val totalZlotyPerPlayer: Map<PlayerColor, Zloty> = eventStream.filterEvents<PaymentEvent>()
+            .groupBy(PaymentEvent::player)
+            .mapValues { (_, payments) ->
+                payments.fold(0) { acc, payment ->
+                    when (payment) {
+                        is ZlotyPaid -> acc - payment.zloty
+                        is ZlotyReceived -> acc + payment.zloty
+                    }
+                }
+            }
+    totalZlotyPerPlayer.forEach { (player, zloty) ->
+        println("${player.icon()}: $zloty zł")
+    }
+}
 
-fun PlayerColor.icon(n: Int): String = when (this) {
+fun MagnumSal.visualizeMiners() = this.visualize { eventStream -> visualize(Miners.from(eventStream)) }
+fun MagnumSal.visualizeZloty() = this.visualize { eventStream -> visualizeZloty(eventStream) }
+
+fun PlayerColor.icon(n: Int = 1): String = when (this) {
     White -> "💛"
     Black -> "🖤"
     Orange -> "🧡"
     Purple -> "💜"
 }.repeat(n)
+
+

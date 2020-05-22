@@ -1,8 +1,11 @@
 package be.kunlabora.magnumsal
 
 import be.kunlabora.magnumsal.MagnumSalEvent.*
+import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyPaid
+import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyReceived
 import be.kunlabora.magnumsal.MinerMovement.PlaceMiner
 import be.kunlabora.magnumsal.MinerMovement.RemoveMiner
+import be.kunlabora.magnumsal.PaymentTransaction.Companion.transaction
 import be.kunlabora.magnumsal.exception.transitionRequires
 import be.kunlabora.magnumsal.gamepieces.*
 import com.fasterxml.jackson.annotation.JsonTypeInfo
@@ -14,20 +17,29 @@ import java.time.format.DateTimeFormatter.ofPattern
 sealed class MagnumSalEvent : Event {
     @JsonTypeName("PlayerJoined")
     data class PlayerJoined(val name: String, val color: PlayerColor) : MagnumSalEvent()
+
     @JsonTypeName("PlayerOrderDetermined")
     data class PlayerOrderDetermined(val player1: PlayerColor, val player2: PlayerColor, val player3: PlayerColor? = null, val player4: PlayerColor? = null) : MagnumSalEvent()
-    @JsonTypeName("ZłotyReceived")
-    data class ZłotyReceived(val player: PlayerColor, val złoty: Złoty) : MagnumSalEvent()
-    @JsonTypeName("ZlotyPaid")
-    data class ZlotyPaid(val player: PlayerColor, val złoty: Złoty) : MagnumSalEvent()
+    sealed class PaymentEvent(val player: PlayerColor, val zloty: Zloty) : MagnumSalEvent() {
+        @JsonTypeName("ZłotyReceived")
+        data class ZlotyReceived(private val p: PlayerColor, private val z: Zloty) : PaymentEvent(p, z)
+
+        @JsonTypeName("ZlotyPaid")
+        data class ZlotyPaid(private val p: PlayerColor, private val z: Zloty) : PaymentEvent(p, z)
+    }
+
     @JsonTypeName("MinerPlaced")
     data class MinerPlaced(val player: PlayerColor, val at: PositionInMine) : MagnumSalEvent()
+
     @JsonTypeName("MineChamberRevealed")
     data class MineChamberRevealed(val at: PositionInMine, val tile: MineChamberTile) : MagnumSalEvent()
+
     @JsonTypeName("MinerRemoved")
     data class MinerRemoved(val player: PlayerColor, val at: PositionInMine) : MagnumSalEvent()
+
     @JsonTypeName("SaltMined")
     data class SaltMined(val player: PlayerColor, val from: PositionInMine, val saltMined: Salts) : MagnumSalEvent()
+
     @JsonTypeName("MinersGotTired")
     data class MinersGotTired(val player: PlayerColor, val from: PositionInMine, val tiredMiners: Int) : MagnumSalEvent()
 }
@@ -75,10 +87,10 @@ class MagnumSal(private val eventStream: EventStream,
             colors.intersect(players).size == players.size
         }
         eventStream.push(PlayerOrderDetermined(player1, player2, player3, player4))
-        eventStream.push(ZłotyReceived(player1, 10))
-        eventStream.push(ZłotyReceived(player2, 12))
-        player3?.let { eventStream.push(ZłotyReceived(it, 14)) }
-        player4?.let { eventStream.push(ZłotyReceived(it, 16)) }
+        eventStream.push(ZlotyReceived(player1, 10))
+        eventStream.push(ZlotyReceived(player2, 12))
+        player3?.let { eventStream.push(ZlotyReceived(it, 14)) }
+        player4?.let { eventStream.push(ZlotyReceived(it, 16)) }
     }
 
     fun placeWorkerInMine(player: PlayerColor, at: PositionInMine) = onlyInPlayersTurn(player) {
@@ -98,7 +110,7 @@ class MagnumSal(private val eventStream: EventStream,
         }
     }
 
-    fun mine(player: PlayerColor, at: PositionInMine, saltToMine: Salts) = onlyInPlayersTurn(player) {
+    fun mine(player: PlayerColor, at: PositionInMine, saltToMine: Salts, transportCost: TransportCost? = null) = onlyInPlayersTurn(player) {
         transitionRequires("you to mine from a MineChamber") {
             at.isInACorridor()
         }
@@ -115,6 +127,7 @@ class MagnumSal(private val eventStream: EventStream,
             złotyForPlayer(player) >= transportersNeeded(player, at)
         }
         val minersThatWillGetTired = strengthAt(player, at)
+        transportCost?.executeTransactions()?.forEach { eventStream.push(it.from); eventStream.push(it.to) }
         eventStream.push(SaltMined(player, at, saltToMine))
         eventStream.push(MinersGotTired(player, at, minersThatWillGetTired))
     }
@@ -127,13 +140,13 @@ class MagnumSal(private val eventStream: EventStream,
                 .count { (_, miners) -> player !in miners.map { it.player } }
     }
 
-    private fun złotyForPlayer(player: PlayerColor): Złoty {
-        val złotyReceived = eventStream.filterEvents<ZłotyReceived>()
+    private fun złotyForPlayer(player: PlayerColor): Zloty {
+        val złotyReceived = eventStream.filterEvents<ZlotyReceived>()
                 .filter { it.player == player }
-                .sumBy { it.złoty }
+                .sumBy { it.zloty }
         val złotyPaid = eventStream.filterEvents<ZlotyPaid>()
                 .filter { it.player == player }
-                .sumBy { it.złoty }
+                .sumBy { it.zloty }
         return (złotyReceived - złotyPaid).debug { "$player currently has $it zł" }
     }
 
@@ -192,7 +205,7 @@ class MagnumSal(private val eventStream: EventStream,
         return this
     }
 
-    internal fun currentState(visualizer: (EventStream) -> Unit) = visualizer(eventStream)
+    internal fun visualize(visualizer: (EventStream) -> Unit) = visualizer(eventStream)
 }
 
 
@@ -203,3 +216,27 @@ enum class PlayerColor {
     Purple;
 }
 
+class TransportCost private constructor(private val from: PlayerColor, private val paymentPerPlayer: MutableMap<PlayerColor, Zloty> = mutableMapOf()) {
+    fun pay(player: PlayerColor, zloty: Zloty): TransportCost {
+        paymentPerPlayer.merge(player, zloty, Zloty::plus)
+        return this
+    }
+
+    fun executeTransactions() = paymentPerPlayer.map { (to, amount) -> transaction(from, to, amount) }
+
+    companion object TransportCosts {
+        fun transportCosts(from: PlayerColor): TransportCost = TransportCost(from)
+    }
+}
+
+data class PaymentTransaction private constructor(val from: ZlotyPaid, val to: ZlotyReceived) {
+    init {
+        require(from.player != to.player) { "Can't create a payment transaction from and to the same player" }
+    }
+
+    companion object {
+        fun transaction(from: PlayerColor, to: PlayerColor, amount: Zloty): PaymentTransaction {
+            return PaymentTransaction(ZlotyPaid(from, amount), ZlotyReceived(to, amount))
+        }
+    }
+}
