@@ -180,11 +180,20 @@ fun TestMagnumSal.withDebugger(): TestMagnumSal {
 }
 
 fun visualize(miners: Miners) {
-    println("#".repeat(10) + " MineShaft Top " + "#".repeat(10))
+    println("${"#".repeat(25)} MineShaft Top ${"#".repeat(25)}")
     miners.groupBy { it.at }
             .forEach { (at, miners) ->
-                val amountOfMinersPerPlayer = miners.groupBy(Miner::player) { miner -> miners.count { it == miner } }
+                val amountOfMinersPerPlayer = miners.groupBy(Miner::player).mapValues { (player, pMiners) -> player.icon(pMiners.size) }.values.joinToString(separator = "")
                 println("$at: $amountOfMinersPerPlayer")
             }
-    println("#".repeat(10) + " MineShaft End " + "#".repeat(10))
+    println("${"#".repeat(25)} MineShaft End ${"#".repeat(25)}")
 }
+
+fun MagnumSal.visualizeMiners() = this.currentState { eventStream -> visualize(Miners.from(eventStream)) }
+
+fun PlayerColor.icon(n: Int): String = when (this) {
+    White -> "💛"
+    Black -> "🖤"
+    Orange -> "🧡"
+    Purple -> "💜"
+}.repeat(n)

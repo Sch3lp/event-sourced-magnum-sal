@@ -134,7 +134,7 @@ class MagnumSal(private val eventStream: EventStream,
         val złotyPaid = eventStream.filterEvents<ZlotyPaid>()
                 .filter { it.player == player }
                 .sumBy { it.złoty }
-        return (złotyReceived - złotyPaid).debug { "$player currently has ${it}zł" }
+        return (złotyReceived - złotyPaid).debug { "$player currently has $it zł" }
     }
 
     private fun saltIsAvailableAt(saltToMine: Salts, at: PositionInMine): Boolean =
@@ -183,6 +183,7 @@ class MagnumSal(private val eventStream: EventStream,
     private fun onlyInPlayersTurn(player: PlayerColor, block: () -> Unit): Any = turnOrderRule.onlyInPlayersTurn(player, block)
     private fun withoutBreakingTheChain(minerMovement: MinerMovement, block: () -> Unit): Any = chainRule.withoutBreakingTheChain(minerMovement, block)
 
+    // Util
     private inline fun <T> T.debug(block: (T) -> String): T {
         if (debugEnabled) {
             val formattedTimestamp = LocalDateTime.now().format(ofPattern("yyyy-MM-dd HH:mm:ss.SSS"))
@@ -190,6 +191,8 @@ class MagnumSal(private val eventStream: EventStream,
         }
         return this
     }
+
+    internal fun currentState(visualizer: (EventStream) -> Unit) = visualizer(eventStream)
 }
 
 

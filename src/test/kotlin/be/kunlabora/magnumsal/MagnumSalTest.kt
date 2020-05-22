@@ -271,7 +271,7 @@ class MagnumSalTest {
                     .distributeWorkersInTheMineShaft(5, listOf(White, Black))
                     .build()
 
-            visualize(Miners.from(eventStream))
+            magnumSal.visualizeMiners()
 
             assertThatExceptionOfType(IllegalTransitionException::class.java)
                     .isThrownBy { magnumSal.placeWorkerInMine(White, at(6, 0)) }
@@ -652,11 +652,14 @@ class MagnumSalTest {
                 val magnumSal = TestMagnumSal(eventStream)
                         .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
                         .withFourWhiteMinersAtFirstRightMineChamber()
-                        .withPlayerHaving(White, 2) //White is not at(1,0) or at(2,0)
+                        .withPlayerHaving(White, 2) //White is nor at(1,0) or at(2,0)
                         .withDebugger()
                         .build()
+                magnumSal.removeWorkerFromMine(White, at(1,0))
 
                 magnumSal.mine(White, at(2, 1), Salts(WHITE))
+
+                magnumSal.visualizeMiners()
             }
         }
     }
