@@ -191,17 +191,7 @@ fun visualize(miners: Miners) {
 }
 
 fun visualizeZloty(eventStream: EventStream) {
-    val totalZlotyPerPlayer: Map<PlayerColor, Zloty> = eventStream.filterEvents<PaymentEvent>()
-            .groupBy(PaymentEvent::player)
-            .mapValues { (_, payments) ->
-                payments.fold(0) { acc, payment ->
-                    when (payment) {
-                        is ZlotyPaid -> acc - payment.zloty
-                        is ZlotyReceived -> acc + payment.zloty
-                    }
-                }
-            }
-    totalZlotyPerPlayer.forEach { (player, zloty) ->
+    ZlotyPerPlayer(eventStream).all().forEach { (player, zloty) ->
         println("${player.icon()}: $zloty zł")
     }
 }

@@ -52,6 +52,8 @@ class MagnumSal(private val eventStream: EventStream,
     private val chainRule = ChainRule(eventStream)
     private val workerLimitRule = WorkerLimitRule(eventStream)
 
+    private val zlotyPerPlayer = ZlotyPerPlayer(eventStream)
+
     private val players
         get() = eventStream.filterEvents<PlayerJoined>()
 
@@ -124,7 +126,7 @@ class MagnumSal(private val eventStream: EventStream,
             strengthAt(player, at) >= saltToMine.size
         }
         transitionRequires("you to have enough złoty to pay for transport bringing your mined salt out of the mine") {
-            złotyForPlayer(player) >= transportersNeeded(player, at)
+            zlotyForPlayer(player) >= transportersNeeded(player, at)
         }
         val minersThatWillGetTired = strengthAt(player, at)
         transportCost?.executeTransactions()?.forEach { eventStream.push(it.from); eventStream.push(it.to) }
@@ -140,14 +142,8 @@ class MagnumSal(private val eventStream: EventStream,
                 .count { (_, miners) -> player !in miners.map { it.player } }
     }
 
-    private fun złotyForPlayer(player: PlayerColor): Zloty {
-        val złotyReceived = eventStream.filterEvents<ZlotyReceived>()
-                .filter { it.player == player }
-                .sumBy { it.zloty }
-        val złotyPaid = eventStream.filterEvents<ZlotyPaid>()
-                .filter { it.player == player }
-                .sumBy { it.zloty }
-        return (złotyReceived - złotyPaid).debug { "$player currently has $it zł" }
+    private fun zlotyForPlayer(player: PlayerColor): Zloty {
+        return zlotyPerPlayer.forPlayer(player).debug { "$player currently has $it zł" }
     }
 
     private fun saltIsAvailableAt(saltToMine: Salts, at: PositionInMine): Boolean =
