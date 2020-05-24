@@ -240,7 +240,7 @@ class TransportCostDistribution private constructor(private val from: PlayerColo
     fun totalToPay(): Zloty = paymentPerPlayer.values.sum()
 
     companion object TransportCosts {
-        fun transportCosts(from: PlayerColor): TransportCostDistribution = TransportCostDistribution(from)
+        fun transportCostDistribution(from: PlayerColor): TransportCostDistribution = TransportCostDistribution(from)
     }
 }
 

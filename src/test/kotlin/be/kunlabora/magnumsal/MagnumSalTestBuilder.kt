@@ -1,6 +1,5 @@
 package be.kunlabora.magnumsal
 
-import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyPaid
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyReceived
 import be.kunlabora.magnumsal.PlayerColor.*
@@ -21,6 +20,7 @@ typealias PlayerName = String
  * Comes with a fun build() that returns the built MagnumSal instance, so you can continue executing _legal_ actions necessary for your tests.
  */
 class TestMagnumSal(val eventStream: EventStream) {
+    lateinit var setupEvents: List<MagnumSalEvent>
     var magnumSal = MagnumSal(eventStream)
 
     var _debugEnabled: Boolean = false
@@ -106,6 +106,33 @@ fun TestMagnumSal.withFourWhiteMinersAtFirstRightMineChamber(): TestMagnumSal {
 
     magnumSal.placeWorkerInMine(Black, at(2, 0))
     magnumSal.removeWorkerFromMine(Black, at(2, 0))
+
+    return this
+}
+
+fun TestMagnumSal.withTwoWhiteMinersAtFirstRightMineChamberWithThreePlayers(): TestMagnumSal {
+    this.withPlayersInOrder("Bruno" using White, "Tim" using Black, "Luis" using Orange)
+    magnumSal.placeWorkerInMine(White, at(1, 0))
+    magnumSal.placeWorkerInMine(Black, at(1, 0))
+    magnumSal.placeWorkerInMine(Orange, at(1, 0))
+
+    magnumSal.placeWorkerInMine(White, at(2, 0))
+    magnumSal.placeWorkerInMine(White, at(2, 1)) // 1
+
+    magnumSal.placeWorkerInMine(Black, at(2, 0))
+    magnumSal.placeWorkerInMine(Black, at(2, 0))
+
+    magnumSal.placeWorkerInMine(Orange, at(2, 0))
+    magnumSal.placeWorkerInMine(Orange, at(2, 0))
+
+    magnumSal.placeWorkerInMine(White, at(2, 1)) // 2
+    magnumSal.removeWorkerFromMine(White, at(2, 0))
+
+    magnumSal.placeWorkerInMine(Black, at(2, 0))
+    magnumSal.removeWorkerFromMine(Black, at(2, 0))
+
+    magnumSal.placeWorkerInMine(Orange, at(2, 0))
+    magnumSal.removeWorkerFromMine(Orange, at(2, 0))
 
     return this
 }
@@ -196,6 +223,12 @@ fun visualizeZloty(eventStream: EventStream) {
 
 fun MagnumSal.visualizeMiners() = this.visualize { eventStream -> visualize(Miners.from(eventStream)) }
 fun MagnumSal.visualizeZloty() = this.visualize { eventStream -> visualizeZloty(eventStream) }
+fun TestMagnumSal.extractSetupPaymentEvents() {
+    this.setupEvents = eventStream.filterEvents<MagnumSalEvent>()
+}
+inline fun <reified T: MagnumSalEvent> TestMagnumSal.filterEvents() : List<T> = this.eventStream
+        .filterEvents<T>()
+        .filter { it !in this.setupEvents }
 
 fun PlayerColor.icon(n: Int = 1): String = when (this) {
     White -> "💛"

@@ -7,7 +7,7 @@ import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyPaid
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyReceived
 import be.kunlabora.magnumsal.PlayerColor.*
 import be.kunlabora.magnumsal.PositionInMine.Companion.at
-import be.kunlabora.magnumsal.TransportCostDistribution.TransportCosts.transportCosts
+import be.kunlabora.magnumsal.TransportCostDistribution.TransportCosts.transportCostDistribution
 import be.kunlabora.magnumsal.exception.IllegalTransitionException
 import be.kunlabora.magnumsal.gamepieces.*
 import be.kunlabora.magnumsal.gamepieces.Salt.*
@@ -667,7 +667,7 @@ class MagnumSalTest {
                 magnumSal.visualizeMiners()
                 magnumSal.visualizeZloty()
 
-                magnumSal.mine(White, at(2, 1), Salts(WHITE), with(transportCosts(White)) {
+                magnumSal.mine(White, at(2, 1), Salts(WHITE), with(transportCostDistribution(White)) {
                     pay(Black, 1)
                     pay(Black, 1)
                 })
@@ -690,7 +690,7 @@ class MagnumSalTest {
 
                 assertThatExceptionOfType(IllegalTransitionException::class.java)
                         .isThrownBy {
-                            magnumSal.mine(White, at(2, 1), Salts(WHITE, WHITE), with(transportCosts(White)) {
+                            magnumSal.mine(White, at(2, 1), Salts(WHITE, WHITE), with(transportCostDistribution(White)) {
                                 pay(Black, 3)
                                 pay(Black, 3)
                             })
@@ -715,7 +715,7 @@ class MagnumSalTest {
 
                 assertThatExceptionOfType(IllegalTransitionException::class.java)
                         .isThrownBy {
-                            magnumSal.mine(White, at(2, 1), Salts(WHITE, WHITE, GREEN), with(transportCosts(White)) {
+                            magnumSal.mine(White, at(2, 1), Salts(WHITE, WHITE, GREEN), with(transportCostDistribution(White)) {
                                 pay(Black, 3)
                                 pay(Black, 3)
                             })
@@ -724,6 +724,81 @@ class MagnumSalTest {
                         .withMessage("Transition requires you to have enough złoty to pay for salt transport bringing your mined salt out of the mine")
 
                 assertThat(eventStream).doesNotContain(ZlotyPaid(White, 4), ZlotyReceived(Black, 4))
+            }
+
+            @Test
+            fun `Can't pay more for salt transport than is required, when paying multiple players`() {
+                val magnumSal = TestMagnumSal(eventStream)
+                        .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
+                        .withTwoWhiteMinersAtFirstRightMineChamberWithThreePlayers()
+                        .withPlayerHaving(White, 6) //White is nor at(1,0) or at(2,0)
+                        .withDebugger()
+                        .build()
+                magnumSal.removeWorkerFromMine(White, at(1, 0))
+                magnumSal.visualizeMiners()
+                magnumSal.visualizeZloty()
+
+                assertThatExceptionOfType(IllegalTransitionException::class.java)
+                        .isThrownBy {
+                            magnumSal.mine(White, at(2, 1), Salts(WHITE, WHITE), with(transportCostDistribution(White)) {
+                                pay(Black, 3)
+                                pay(Orange, 3)
+                            })
+                            magnumSal.visualizeZloty()
+                        }
+                        .withMessage("Transition requires you not to pay more złoty for salt transport than is required")
+
+                assertThat(eventStream).doesNotContain(ZlotyPaid(White, 3), ZlotyPaid(White, 3), ZlotyReceived(Black, 3), ZlotyReceived(Orange, 3))
+            }
+
+            @Test
+            fun `Can't bring up multiple salt blocks when player does not have enough money to pay for transport, when paying multiple players`() {
+                val magnumSal = TestMagnumSal(eventStream)
+                        .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
+                        .withTwoWhiteMinersAtFirstRightMineChamberWithThreePlayers()
+                        .withPlayerHaving(White, 3)
+                        .withDebugger()
+                        .build()
+                magnumSal.removeWorkerFromMine(White, at(1, 0))
+                magnumSal.visualizeMiners()
+                magnumSal.visualizeZloty()
+
+                assertThatExceptionOfType(IllegalTransitionException::class.java)
+                        .isThrownBy {
+                            magnumSal.mine(White, at(2, 1), Salts(WHITE, WHITE), with(transportCostDistribution(White)) {
+                                pay(Black, 2)
+                                pay(Orange, 2)
+                            })
+                            magnumSal.visualizeZloty()
+                        }
+                        .withMessage("Transition requires you to have enough złoty to pay for salt transport bringing your mined salt out of the mine")
+
+                assertThat(eventStream).doesNotContain(ZlotyPaid(White, 2), ZlotyPaid(White, 2), ZlotyReceived(Black, 2), ZlotyReceived(Orange, 2))
+            }
+
+            @Test
+            fun `Paying multiple players for 2 salts, and one position`() {
+                val testMagnumSal = TestMagnumSal(eventStream)
+                        .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
+                        .withTwoWhiteMinersAtFirstRightMineChamberWithThreePlayers()
+                        .withPlayerHaving(White, 4)
+                        .withDebugger()
+                val magnumSal = testMagnumSal.build()
+                magnumSal.visualizeMiners()
+                magnumSal.visualizeZloty()
+                testMagnumSal.extractSetupPaymentEvents()
+
+                magnumSal.mine(White, at(2, 1), Salts(WHITE, WHITE), with(transportCostDistribution(White)) {
+                    pay(Black, 1)
+                    pay(Orange, 1)
+                })
+                magnumSal.visualizeZloty()
+
+                assertThat(testMagnumSal.filterEvents<PaymentEvent>())
+                        .containsExactlyInAnyOrder(
+                                ZlotyPaid(White, 1), ZlotyReceived(Black, 1),
+                                ZlotyPaid(White, 1), ZlotyReceived(Orange, 1)
+                        )
             }
         }
     }
