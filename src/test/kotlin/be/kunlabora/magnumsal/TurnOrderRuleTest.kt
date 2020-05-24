@@ -130,6 +130,23 @@ class TurnOrderRuleTest {
     }
 
     @Test
+    fun `Legal case in a game with 2 players, second player does one action and passes once after first round`() {
+        val magnumSal = TestMagnumSal(eventStream)
+                .withPlayersInOrder("Bruno" using White, "Tim" using Black)
+                .build()
+
+        magnumSal.placeWorkerInMine(White, at(1, 0))
+        magnumSal.placeWorkerInMine(Black, at(1, 0))
+        magnumSal.placeWorkerInMine(White, at(2, 0))
+        magnumSal.pass(White)
+
+        var success = false
+        TurnOrderRule(eventStream).onlyInPlayersTurn(Black) { success = true }
+
+        assertThat(success).isTrue()
+    }
+
+    @Test
     fun `Legal case in a game with 4 players, fourth player goes twice after first round`() {
         val magnumSal = TestMagnumSal(eventStream)
                 .withPlayersInOrder("Bruno" using White, "Tim" using Black, "Snarf" using Orange, "Azrael" using Purple)

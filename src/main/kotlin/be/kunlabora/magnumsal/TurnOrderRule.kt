@@ -24,9 +24,11 @@ class TurnOrderRule(private val eventStream: EventStream) {
         get() = eventStream.filterEvents<MinerRemoved>()
     private val saltMined
         get() = eventStream.filterEvents<SaltMined>()
+    private val passedActions
+        get() = eventStream.filterEvents<PassedAction>()
     //TODO refactor MagnumSalEvents: introduce PlayerActionEvents to have a Player
     private val playerActions
-        get() = minersPlaced.map { it.player } + minersRemoved.map { it.player } + saltMined.map { it.player }
+        get() = minersPlaced.map { it.player } + minersRemoved.map { it.player } + saltMined.map { it.player } + passedActions.map { it.player }
 
     private fun itIsTheTurnOf(player: PlayerColor): Boolean {
         return if (inFirstRound()) {

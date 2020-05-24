@@ -22,6 +22,10 @@ sealed class MagnumSalEvent : Event {
 
     @JsonTypeName("PlayerOrderDetermined")
     data class PlayerOrderDetermined(val player1: PlayerColor, val player2: PlayerColor, val player3: PlayerColor? = null, val player4: PlayerColor? = null) : MagnumSalEvent()
+
+    @JsonTypeName("PassedTurn")
+    data class PassedAction(val player: PlayerColor) : MagnumSalEvent()
+
     sealed class PaymentEvent(val player: PlayerColor, val zloty: Zloty) : MagnumSalEvent() {
         @JsonTypeName("ZłotyReceived")
         data class ZlotyReceived(private val p: PlayerColor, private val z: Zloty) : PaymentEvent(p, z)
@@ -97,6 +101,10 @@ class MagnumSal(private val eventStream: EventStream,
         eventStream.push(ZlotyReceived(player2, 12))
         player3?.let { eventStream.push(ZlotyReceived(it, 14)) }
         player4?.let { eventStream.push(ZlotyReceived(it, 16)) }
+    }
+
+    fun pass(player: PlayerColor) {
+        eventStream.push(PassedAction(player))
     }
 
     fun placeWorkerInMine(player: PlayerColor, at: PositionInMine) = onlyInPlayersTurn(player) {
