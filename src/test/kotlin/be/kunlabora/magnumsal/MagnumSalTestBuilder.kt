@@ -99,14 +99,14 @@ fun TestMagnumSal.withFourWhiteMinersAtFirstRightMineChamber(): TestMagnumSal {
     magnumSal.placeWorkerInMine(White, at(2, 1)) // 2
     magnumSal.placeWorkerInMine(White, at(2, 1)) // 3
 
-    magnumSal.placeWorkerInMine(Black, at(2, 0))
-    magnumSal.removeWorkerFromMine(Black, at(2, 0))
+    magnumSal.pass(Black)
+    magnumSal.pass(Black)
 
     magnumSal.removeWorkerFromMine(White, at(2, 0))
     magnumSal.placeWorkerInMine(White, at(2, 1)) // 4
 
-    magnumSal.placeWorkerInMine(Black, at(2, 0))
-    magnumSal.removeWorkerFromMine(Black, at(2, 0))
+    magnumSal.pass(Black)
+    magnumSal.pass(Black)
 
     return this
 }
@@ -129,11 +129,11 @@ fun TestMagnumSal.withTwoWhiteMinersAtFirstRightMineChamberWithThreePlayers(): T
     magnumSal.placeWorkerInMine(White, at(2, 1)) // 2
     magnumSal.removeWorkerFromMine(White, at(2, 0))
 
-    magnumSal.placeWorkerInMine(Black, at(2, 0))
-    magnumSal.removeWorkerFromMine(Black, at(2, 0))
+    magnumSal.pass(Black)
+    magnumSal.pass(Black)
 
-    magnumSal.placeWorkerInMine(Orange, at(2, 0))
-    magnumSal.removeWorkerFromMine(Orange, at(2, 0))
+    magnumSal.pass(Orange)
+    magnumSal.pass(Orange)
 
     return this
 }
