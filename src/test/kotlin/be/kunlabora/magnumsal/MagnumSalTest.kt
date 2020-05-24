@@ -786,7 +786,6 @@ class MagnumSalTest {
                 val magnumSal = testMagnumSal.build()
                 magnumSal.visualizeMiners()
                 magnumSal.visualizeZloty()
-                testMagnumSal.extractSetupPaymentEvents()
 
                 magnumSal.mine(White, at(2, 1), Salts(WHITE, WHITE), with(transportCostDistribution(White)) {
                     pay(Black, 1)

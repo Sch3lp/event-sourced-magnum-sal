@@ -37,6 +37,7 @@ class TestMagnumSal(val eventStream: EventStream) {
         }
 
     fun build(): MagnumSal {
+        setupEvents = eventStream.filterEvents<MagnumSalEvent>()
         return MagnumSal(eventStream, _tiles, _debugEnabled)
     }
 }
@@ -223,9 +224,6 @@ fun visualizeZloty(eventStream: EventStream) {
 
 fun MagnumSal.visualizeMiners() = this.visualize { eventStream -> visualize(Miners.from(eventStream)) }
 fun MagnumSal.visualizeZloty() = this.visualize { eventStream -> visualizeZloty(eventStream) }
-fun TestMagnumSal.extractSetupPaymentEvents() {
-    this.setupEvents = eventStream.filterEvents<MagnumSalEvent>()
-}
 inline fun <reified T: MagnumSalEvent> TestMagnumSal.filterEvents() : List<T> = this.eventStream
         .filterEvents<T>()
         .filter { it !in this.setupEvents }
