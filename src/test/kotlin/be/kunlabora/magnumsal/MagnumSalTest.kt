@@ -657,12 +657,12 @@ class MagnumSalTest {
 
             @Test
             fun `Can mine from a Mine Chamber when player has just enough money to pay the chain`() {
-                val magnumSal = TestMagnumSal(eventStream)
+                val testMagnumSal = TestMagnumSal(eventStream)
                         .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
                         .withFourWhiteMinersAtFirstRightMineChamber()
                         .withPlayerHaving(White, 2) //White is nor at(1,0) or at(2,0)
                         .withDebugger()
-                        .build()
+                val magnumSal = testMagnumSal.build()
                 magnumSal.removeWorkerFromMine(White, at(1, 0))
                 magnumSal.visualizeMiners()
                 magnumSal.visualizeZloty()
@@ -672,7 +672,8 @@ class MagnumSalTest {
                     pay(Black, 1)
                 })
 
-                assertThat(eventStream).contains(ZlotyPaid(White, 2), ZlotyReceived(Black, 2))
+                assertThat(testMagnumSal.filterEvents<PaymentEvent>())
+                        .containsExactlyInAnyOrder(ZlotyPaid(White, 2), ZlotyReceived(Black, 2))
                 magnumSal.visualizeZloty()
             }
 
@@ -753,11 +754,12 @@ class MagnumSalTest {
 
             @Test
             fun `Can't bring up multiple salt blocks when player does not have enough money to pay for transport, when paying multiple players`() {
-                val magnumSal = TestMagnumSal(eventStream)
+                val testMagnumSal = TestMagnumSal(eventStream)
                         .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
                         .withTwoWhiteMinersAtFirstRightMineChamberWithThreePlayers()
                         .withPlayerHaving(White, 3)
                         .withDebugger()
+                val magnumSal = testMagnumSal
                         .build()
                 magnumSal.removeWorkerFromMine(White, at(1, 0))
                 magnumSal.visualizeMiners()
@@ -773,7 +775,8 @@ class MagnumSalTest {
                         }
                         .withMessage("Transition requires you to have enough złoty to pay for salt transport bringing your mined salt out of the mine")
 
-                assertThat(eventStream).doesNotContain(ZlotyPaid(White, 2), ZlotyPaid(White, 2), ZlotyReceived(Black, 2), ZlotyReceived(Orange, 2))
+                assertThat(testMagnumSal.filterEvents<PaymentEvent>())
+                        .doesNotContain(ZlotyPaid(White, 2), ZlotyPaid(White, 2), ZlotyReceived(Black, 2), ZlotyReceived(Orange, 2))
             }
 
             @Test
