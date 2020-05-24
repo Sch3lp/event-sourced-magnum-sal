@@ -50,6 +50,9 @@ sealed class MagnumSalEvent : Event {
 
     @JsonTypeName("MinersGotTired")
     data class MinersGotTired(val player: PlayerColor, val from: PositionInMine, val tiredMiners: Int) : MagnumSalEvent()
+
+    @JsonTypeName("WaterPumped")
+    data class WaterPumped(val player: PlayerColor, val from: PositionInMine, val waterPumped: WaterCubes) : MagnumSalEvent()
 }
 
 class MagnumSal(private val eventStream: EventStream,
@@ -131,8 +134,18 @@ class MagnumSal(private val eventStream: EventStream,
     }
 
 
-    fun usePumphouse(player: PlayerColor) = onlyInPlayersTurn(player) {
-
+    fun usePumphouse(player: PlayerColor, at: PositionInMine, waterToPump: WaterCubes) = onlyInPlayersTurn(player) {
+        //TODO: find a way to remove duplication with orderMinersToMine requirements
+        transitionRequires("you to have a miner at $at") {
+            hasWorkerAt(player, at)
+        }
+        transitionRequires("you to pump water from a MineChamber") {
+            at.isInACorridor()
+        }
+        transitionRequires("there to be $waterToPump in $at") {
+            waterIsAvailableAt(waterToPump, at)
+        }
+        eventStream.push(WaterPumped(player, at, waterToPump))
     }
 
 
@@ -184,6 +197,14 @@ class MagnumSal(private val eventStream: EventStream,
     private fun saltLeftInMineChamber(at: PositionInMine): Salts {
         val saltsOnTile = Salts(revealedMineChambers.single { it.at == at }.tile.salt)
         return eventStream.filterEvents<SaltMined>().filter { it.from == at }.fold(saltsOnTile) { acc, it -> acc - it.saltMined }
+    }
+
+    private fun waterIsAvailableAt(waterToPump: WaterCubes, at: PositionInMine): Boolean =
+            waterToPump <= waterLeftInMineChamber(at).debug { "Checking if $waterToPump can be pumped... Water left in $at: $it." }
+
+    private fun waterLeftInMineChamber(at: PositionInMine): WaterCubes {
+        val waterOnTile = revealedMineChambers.single { it.at == at }.tile.waterCubes
+        return eventStream.filterEvents<WaterPumped>().filter { it.from == at }.fold(waterOnTile) { acc, it -> acc - it.waterPumped }
     }
 
     private fun strengthAt(player: PlayerColor, at: PositionInMine): Int {

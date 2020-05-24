@@ -810,6 +810,7 @@ class MagnumSalTest {
         @Test
         fun `A player cannot use the pumphouse, when it's not your turn`() {
             val magnumSal = TestMagnumSal(eventStream)
+                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 1))
                     .withTwoWhiteMinersAtFirstRightMineChamberWithThreePlayers()
                     .build()
 
@@ -817,18 +818,87 @@ class MagnumSalTest {
             magnumSal.pass(White)
 
             assertThatExceptionOfType(IllegalTransitionException::class.java)
-                    .isThrownBy { magnumSal.usePumphouse(White) }
+                    .isThrownBy { magnumSal.usePumphouse(White, at(2,1), 1) }
                     .withMessage("Transition requires it to be your turn")
         }
 
         @Test
-        fun `A player cannot use the pumphouse, when they are not in a minechamber with water`() {
+        fun `A player cannot use the pumphouse, when they do not have a miner in the given minechamber`() {
+            val magnumSal = TestMagnumSal(eventStream)
+                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 1))
+                    .withPlayersInOrder("Bruno" using White, "Tim" using Black)
+                    .build()
 
+            magnumSal.placeWorkerInMine(White, at(1,0))
+            magnumSal.placeWorkerInMine(Black, at(2,0))
+
+            magnumSal.placeWorkerInMine(White, at(2,0))
+            magnumSal.pass(White)
+
+            magnumSal.placeWorkerInMine(Black, at(2,1))
+            magnumSal.pass(Black)
+
+            assertThatExceptionOfType(IllegalTransitionException::class.java)
+                    .isThrownBy { magnumSal.usePumphouse(White, at(2,1), 1) }
+                    .withMessage("Transition requires you to have a miner at ${at(2, 1)}")
+        }
+
+        @Test
+        fun `A player cannot use the pumphouse, when they are not in a minechamber`() {
+            val magnumSal = TestMagnumSal(eventStream)
+                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 1))
+                    .withPlayersInOrder("Bruno" using White, "Tim" using Black)
+                    .build()
+
+            magnumSal.placeWorkerInMine(White, at(1,0))
+            magnumSal.placeWorkerInMine(Black, at(2,0))
+
+            assertThatExceptionOfType(IllegalTransitionException::class.java)
+                    .isThrownBy { magnumSal.usePumphouse(White, at(1,0), 1) }
+                    .withMessage("Transition requires you to pump water from a MineChamber")
+        }
+
+        @Test
+        fun `A player cannot use the pumphouse, when they are not in a minechamber with water`() {
+            val magnumSal = TestMagnumSal(eventStream)
+                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
+                    .withPlayersInOrder("Bruno" using White, "Tim" using Black)
+                    .build()
+
+            magnumSal.placeWorkerInMine(White, at(1,0))
+            magnumSal.placeWorkerInMine(Black, at(2,0))
+
+            magnumSal.placeWorkerInMine(White, at(2,1))
+
+            assertThatExceptionOfType(IllegalTransitionException::class.java)
+                    .isThrownBy { magnumSal.usePumphouse(White, at(2,1), 1) }
+                    .withMessage("Transition requires there to be 1 in minechamber[2, right[1]]")
+        }
+
+        @Test
+        fun `A player cannot use the pumphouse, when there is no longer water present in a minechamber`() {
+            val magnumSal = TestMagnumSal(eventStream)
+                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 1))
+                    .withPlayersInOrder("Bruno" using White, "Tim" using Black)
+                    .build()
+
+            magnumSal.placeWorkerInMine(White, at(1,0))
+            magnumSal.placeWorkerInMine(Black, at(2,0))
+
+            magnumSal.placeWorkerInMine(White, at(2,1))
+            magnumSal.usePumphouse(White, at(2,1), 1)
+
+            magnumSal.placeWorkerInMine(Black, at(2,1))
+
+            assertThatExceptionOfType(IllegalTransitionException::class.java)
+                    .isThrownBy { magnumSal.usePumphouse(Black, at(2,1), 1) }
+                    .withMessage("Transition requires there to be 1 in minechamber[2, right[1]]")
         }
 
         @Test
         fun `A player cannot use the pumphouse, when they do not have enough złoty`() {
-
+            //TODO FIRST REFACTOR pumping water!!!!
+            //TODO THEN REFACTOR player actions in turn order, you've stalled long enough!!!
         }
 
         @Test
@@ -848,11 +918,6 @@ class MagnumSalTest {
 
         @Test
         fun `A player uses the pumphouse to pump out all four of the watercubes of one minechamber and pays 9 złoty`() {
-
-        }
-
-        @Test
-        fun `A player first uses the pumphouse, then mines salt out of a chamber previously filled with water`() {
 
         }
     }

@@ -52,7 +52,7 @@ fun TestMagnumSal.withPlayers(player1: Player,
     return this
 }
 
-fun TestMagnumSal.withPlayerOrder(player1: PlayerColor,
+private fun TestMagnumSal.withPlayerOrder(player1: PlayerColor,
                                   player2: PlayerColor,
                                   player3: PlayerColor?,
                                   player4: PlayerColor?): TestMagnumSal {
