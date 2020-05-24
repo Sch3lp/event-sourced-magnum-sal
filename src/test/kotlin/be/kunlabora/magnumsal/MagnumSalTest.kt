@@ -7,7 +7,7 @@ import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyPaid
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyReceived
 import be.kunlabora.magnumsal.PlayerColor.*
 import be.kunlabora.magnumsal.PositionInMine.Companion.at
-import be.kunlabora.magnumsal.TransportCost.TransportCosts.transportCosts
+import be.kunlabora.magnumsal.TransportCostDistribution.TransportCosts.transportCosts
 import be.kunlabora.magnumsal.exception.IllegalTransitionException
 import be.kunlabora.magnumsal.gamepieces.*
 import be.kunlabora.magnumsal.gamepieces.Salt.*
@@ -681,7 +681,7 @@ class MagnumSalTest {
                 val magnumSal = TestMagnumSal(eventStream)
                         .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
                         .withFourWhiteMinersAtFirstRightMineChamber()
-                        .withPlayerHaving(White, 4) //White is nor at(1,0) or at(2,0)
+                        .withPlayerHaving(White, 6) //White is nor at(1,0) or at(2,0)
                         .withDebugger()
                         .build()
                 magnumSal.removeWorkerFromMine(White, at(1, 0))
@@ -690,15 +690,15 @@ class MagnumSalTest {
 
                 assertThatExceptionOfType(IllegalTransitionException::class.java)
                         .isThrownBy {
-                            magnumSal.mine(White, at(2, 1), Salts(WHITE), with(transportCosts(White)) {
-                                pay(Black, 2)
-                                pay(Black, 2)
+                            magnumSal.mine(White, at(2, 1), Salts(WHITE, WHITE), with(transportCosts(White)) {
+                                pay(Black, 3)
+                                pay(Black, 3)
                             })
                             magnumSal.visualizeZloty()
                         }
                         .withMessage("Transition requires you not to pay more złoty for salt transport than is required")
 
-                assertThat(eventStream).doesNotContain(ZlotyPaid(White, 4), ZlotyReceived(Black, 4))
+                assertThat(eventStream).doesNotContain(ZlotyPaid(White, 6), ZlotyReceived(Black, 6))
             }
 
             @Test

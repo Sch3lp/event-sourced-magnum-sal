@@ -116,9 +116,9 @@ class MagnumSal(private val eventStream: EventStream,
         }
     }
 
-    fun mine(player: PlayerColor, at: PositionInMine, saltToMine: Salts, transportCost: TransportCost? = null) = onlyInPlayersTurn(player) {
+    fun mine(player: PlayerColor, at: PositionInMine, saltToMine: Salts, transportCostDistribution: TransportCostDistribution? = null) = onlyInPlayersTurn(player) {
         orderMinersToMine(player, at, saltToMine)
-        handleSaltTransport(player, at, transportCost, saltToMine)
+        handleSaltTransport(player, at, transportCostDistribution, saltToMine)
         eventStream.push(SaltMined(player, at, saltToMine))
     }
 
@@ -139,20 +139,22 @@ class MagnumSal(private val eventStream: EventStream,
         eventStream.push(MinersGotTired(player, at, minersThatWillGetTired))
     }
 
-    private fun handleSaltTransport(player: PlayerColor, at: PositionInMine, transportCost: TransportCost?, saltToMine: Salts) {
+    private fun handleSaltTransport(player: PlayerColor, at: PositionInMine, transportCostDistribution: TransportCostDistribution?, saltToMine: Salts) {
         transitionRequires("you to have enough złoty to pay for salt transport bringing your mined salt out of the mine") {
-            zlotyForPlayer(player) >= saltToMine.size * transportersNeeded(player, at)
+            zlotyForPlayer(player) >= transportCost(saltToMine, player, at)
         }
         transitionRequires("you not to pay more złoty for salt transport than is required") {
-            transportCost == null || transportCost.totalToPay() <= transportersNeeded(player, at)
+            transportCostDistribution == null || transportCostDistribution.totalToPay().debug { "$player intends to pay $it in total for transport" } <= transportCost(saltToMine, player, at)
         }
-        transportCost?.executeTransactions()?.forEach { eventStream.push(it.from); eventStream.push(it.to) }
+        transportCostDistribution?.executeTransactions()?.forEach { eventStream.push(it.from); eventStream.push(it.to) }
     }
+
+    private fun transportCost(saltToMine: Salts, player: PlayerColor, at: PositionInMine) =
+            saltToMine.size.debug { "Amount of transported salt to pay for: $it" } * transportersNeeded(player, at)
 
     private fun transportersNeeded(player: PlayerColor, fromMineChamber: PositionInMine): Int {
         val positionsTheSaltWillTravel = fromMineChamber.positionsUntilTheTop()
         return miners.filter { it.at in positionsTheSaltWillTravel }
-                .debug { "${player}'s mine action requires transport across $it.at" }
                 .groupBy { it.at }
                 .count { (_, miners) -> player !in miners.map { it.player } }
                 .debug { "Miners to pay for transport: $it" }
@@ -228,8 +230,8 @@ enum class PlayerColor {
     Purple;
 }
 
-class TransportCost private constructor(private val from: PlayerColor, private val paymentPerPlayer: MutableMap<PlayerColor, Zloty> = mutableMapOf()) {
-    fun pay(player: PlayerColor, zloty: Zloty): TransportCost {
+class TransportCostDistribution private constructor(private val from: PlayerColor, private val paymentPerPlayer: MutableMap<PlayerColor, Zloty> = mutableMapOf()) {
+    fun pay(player: PlayerColor, zloty: Zloty): TransportCostDistribution {
         paymentPerPlayer.merge(player, zloty, Zloty::plus)
         return this
     }
@@ -238,7 +240,7 @@ class TransportCost private constructor(private val from: PlayerColor, private v
     fun totalToPay(): Zloty = paymentPerPlayer.values.sum()
 
     companion object TransportCosts {
-        fun transportCosts(from: PlayerColor): TransportCost = TransportCost(from)
+        fun transportCosts(from: PlayerColor): TransportCostDistribution = TransportCostDistribution(from)
     }
 }
 
