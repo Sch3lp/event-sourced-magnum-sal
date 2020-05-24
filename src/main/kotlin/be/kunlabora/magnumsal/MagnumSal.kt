@@ -130,6 +130,12 @@ class MagnumSal(private val eventStream: EventStream,
         eventStream.push(SaltMined(player, at, saltToMine))
     }
 
+
+    fun usePumphouse(player: PlayerColor) = onlyInPlayersTurn(player) {
+
+    }
+
+
     private fun orderMinersToMine(player: PlayerColor, at: PositionInMine, saltToMine: Salts) {
         transitionRequires("you to mine from a MineChamber") {
             at.isInACorridor()

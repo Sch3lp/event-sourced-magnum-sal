@@ -809,7 +809,16 @@ class MagnumSalTest {
     inner class UsingThePumpHouse {
         @Test
         fun `A player cannot use the pumphouse, when it's not your turn`() {
+            val magnumSal = TestMagnumSal(eventStream)
+                    .withTwoWhiteMinersAtFirstRightMineChamberWithThreePlayers()
+                    .build()
 
+            magnumSal.pass(White)
+            magnumSal.pass(White)
+
+            assertThatExceptionOfType(IllegalTransitionException::class.java)
+                    .isThrownBy { magnumSal.usePumphouse(White) }
+                    .withMessage("Transition requires it to be your turn")
         }
 
         @Test
