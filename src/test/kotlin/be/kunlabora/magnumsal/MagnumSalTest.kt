@@ -700,6 +700,31 @@ class MagnumSalTest {
 
                 assertThat(eventStream).doesNotContain(ZlotyPaid(White, 4), ZlotyReceived(Black, 4))
             }
+
+            @Test
+            fun `Can't bring up multiple salt blocks when player does not have enough money to pay for transport`() {
+                val magnumSal = TestMagnumSal(eventStream)
+                        .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
+                        .withFourWhiteMinersAtFirstRightMineChamber()
+                        .withPlayerHaving(White, 4)
+                        .withDebugger()
+                        .build()
+                magnumSal.removeWorkerFromMine(White, at(1, 0))
+                magnumSal.visualizeMiners()
+                magnumSal.visualizeZloty()
+
+                assertThatExceptionOfType(IllegalTransitionException::class.java)
+                        .isThrownBy {
+                            magnumSal.mine(White, at(2, 1), Salts(WHITE, WHITE, GREEN), with(transportCosts(White)) {
+                                pay(Black, 3)
+                                pay(Black, 3)
+                            })
+                            magnumSal.visualizeZloty()
+                        }
+                        .withMessage("Transition requires you to have enough złoty to pay for salt transport bringing your mined salt out of the mine")
+
+                assertThat(eventStream).doesNotContain(ZlotyPaid(White, 4), ZlotyReceived(Black, 4))
+            }
         }
     }
 }
