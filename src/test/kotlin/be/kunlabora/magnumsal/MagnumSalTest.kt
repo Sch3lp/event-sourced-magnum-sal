@@ -804,4 +804,47 @@ class MagnumSalTest {
             }
         }
     }
+
+    @Nested
+    inner class UsingThePumpHouse {
+        @Test
+        fun `A player cannot use the pumphouse, when it's not your turn`() {
+
+        }
+
+        @Test
+        fun `A player cannot use the pumphouse, when they are not in a minechamber with water`() {
+
+        }
+
+        @Test
+        fun `A player cannot use the pumphouse, when they do not have enough złoty`() {
+
+        }
+
+        @Test
+        fun `A player uses the pumphouse to pump out one watercube of one minechamber and pays nothing`() {
+
+        }
+
+        @Test
+        fun `A player uses the pumphouse to pump out two watercubes of one minechamber and pays 2 złoty`() {
+
+        }
+
+        @Test
+        fun `A player uses the pumphouse to pump out three watercubes of one minechamber and pays 5 złoty`() {
+
+        }
+
+        @Test
+        fun `A player uses the pumphouse to pump out all four of the watercubes of one minechamber and pays 9 złoty`() {
+
+        }
+
+        @Test
+        fun `A player first uses the pumphouse, then mines salt out of a chamber previously filled with water`() {
+
+        }
+    }
 }

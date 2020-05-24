@@ -21,6 +21,7 @@ enum class Level {
 }
 
 typealias WaterCubes = Int
+const val MAX_AMOUNT_OF_WATER_CUBES_PER_TILE = 4
 
 enum class Salt {
     BROWN,
@@ -62,7 +63,7 @@ data class Salts(private val _salts: List<Salt>) : List<Salt> by _salts {
 
 data class MineChamberTile(val level: Level, val salt: List<Salt>, val waterCubes: WaterCubes = 0, val id: UUID = UUID.randomUUID()) {
     init {
-        require(waterCubes in 0..4) { "A MineChamberTile must have between 0 and 4 cubes of Water" }
+        require(waterCubes in 0..MAX_AMOUNT_OF_WATER_CUBES_PER_TILE) { "A MineChamberTile must have between 0 and 4 cubes of Water" }
         require(salt.isNotEmpty()) { "A MineChamberTile must have at least one Salt" }
     }
 }
