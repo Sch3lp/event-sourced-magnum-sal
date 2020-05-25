@@ -897,13 +897,54 @@ class MagnumSalTest {
 
         @Test
         fun `A player cannot use the pumphouse, when they do not have enough złoty`() {
-            //TODO THEN REFACTOR player actions in turn order, you've stalled long enough!!!
+            val magnumSal = TestMagnumSal(eventStream)
+                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 2))
+                    .withPlayersInOrder("Bruno" using White, "Tim" using Black)
+                    .withPlayerHaving(White, 1)
+                    .build()
+
+            magnumSal.placeWorkerInMine(White, at(1,0))
+            magnumSal.placeWorkerInMine(Black, at(2,0))
+
+            magnumSal.placeWorkerInMine(White, at(2,1))
+
+            assertThatExceptionOfType(IllegalTransitionException::class.java)
+                    .isThrownBy { magnumSal.usePumphouse(White, at(2,1), 2) }
+                    .withMessage("Transition requires you to have enough złoty to pay for using the pumphouse")
         }
 
         @Test
         fun `A player uses the pumphouse to pump out one watercube of one minechamber and pays nothing`() {
+            val testMagnumSal = TestMagnumSal(eventStream)
+                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 4))
+                    .withPlayersInOrder("Bruno" using White, "Tim" using Black)
+                    .withPlayerHaving(White, 9)
+            val magnumSal = testMagnumSal.build()
 
+            magnumSal.placeWorkerInMine(White, at(1,0))
+            magnumSal.placeWorkerInMine(Black, at(2,0))
+
+            magnumSal.placeWorkerInMine(White, at(2,1))
+
+            magnumSal.usePumphouse(White, at(2,1), 1)
+
+            val actualPaymentEvents = testMagnumSal.filterEvents<PaymentEvent>()
+            assertThat(actualPaymentEvents.filter { it.player == White })
+                    .doesNotHaveAnyElementsOfTypes(ZlotyPaid::class.java)
         }
+
+        /*
+         * Thank you so much ForeverMash for the brainstorm on this!
+         * option the 1st: introduce PlayerInitializedEvent  ->
+         *   Will be needing it anyway soon(tm)
+         *   Will provide a nice hook to setup players in tests, without screwing with the main production code too much
+         *   Is going to be much more code to write T_T
+         * option the 2nd: introduce SnapshotEvent to get a "marker" from where to start asserting events ->
+         *   More work than option 3, might also (at a later stage) impact actual production code
+         *   But getting events to assert is quite simple, more explicit in code (QoL for future devs), re-use of setup in multiple tests will be easier
+         * option the 3rd: only fetching the last X amount of events -> Nice because simple implementation + leaves options in the setupEvents thing.
+         *   going with this for now because it's simply the least amount of code, but will probably refactor towards option 1 at a later stage (when introducing players get assigned a bunch of initial workers)
+         */
 
         @Test
         fun `A player uses the pumphouse to pump out two watercubes of one minechamber and pays 2 złoty`() {

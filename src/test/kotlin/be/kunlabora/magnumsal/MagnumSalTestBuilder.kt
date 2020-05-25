@@ -7,6 +7,7 @@ import be.kunlabora.magnumsal.PositionInMine.Companion.at
 import be.kunlabora.magnumsal.gamepieces.AllMineChamberTiles
 import be.kunlabora.magnumsal.gamepieces.MineChamberTile
 import be.kunlabora.magnumsal.gamepieces.Zloty
+import java.time.LocalDateTime.now
 
 data class Player(val name: PlayerName, val color: PlayerColor)
 
@@ -37,7 +38,7 @@ class TestMagnumSal(val eventStream: EventStream) {
         }
 
     fun build(): MagnumSal {
-        setupEvents = eventStream.filterEvents<MagnumSalEvent>()
+        setupEvents = eventStream.filterEvents<MagnumSalEvent>().toList()
         return MagnumSal(eventStream, _tiles, _debugEnabled)
     }
 }
@@ -207,6 +208,7 @@ fun TestMagnumSal.withDebugger(): TestMagnumSal {
     this.debugEnabled = true
     return this
 }
-inline fun <reified T: MagnumSalEvent> TestMagnumSal.filterEvents() : List<T> = this.eventStream
-        .filterEvents<T>()
-        .filter { it !in this.setupEvents }
+inline fun <reified T: MagnumSalEvent> TestMagnumSal.filterEvents() : List<T> {
+    val eventsToAssert = EventStream(this.eventStream.drop(this.setupEvents.size).toMutableList())
+    return eventsToAssert.filterEvents<T>()
+}
