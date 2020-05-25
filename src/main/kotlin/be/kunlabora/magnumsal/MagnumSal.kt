@@ -120,9 +120,7 @@ class MagnumSal(private val eventStream: EventStream,
 
     fun removeWorkerFromMine(player: PlayerColor, at: PositionInMine) = onlyInPlayersTurn(player) {
         withoutBreakingTheChain(RemoveMiner(player, at)) {
-            transitionRequires("you to have a miner at $at") {
-                hasWorkerAt(player, at)
-            }
+            requiresYouToHaveAMinerAt(at, player)
             eventStream.push(MinerRemoved(player, at))
         }
     }
@@ -133,32 +131,14 @@ class MagnumSal(private val eventStream: EventStream,
         eventStream.push(SaltMined(player, at, saltToMine))
     }
 
-
     fun usePumphouse(player: PlayerColor, at: PositionInMine, waterToPump: WaterCubes) = onlyInPlayersTurn(player) {
-        //TODO: find a way to remove duplication with orderMinersToMine requirements
-        transitionRequires("you to have a miner at $at") {
-            hasWorkerAt(player, at)
-        }
-        transitionRequires("you to pump water from a MineChamber") {
-            at.isInACorridor()
-        }
-        transitionRequires("there to be $waterToPump in $at") {
-            waterIsAvailableAt(waterToPump, at)
-        }
+        gather(at, player, "pump water", waterToPump, this::waterIsAvailableAt)
         eventStream.push(WaterPumped(player, at, waterToPump))
     }
 
-
     private fun orderMinersToMine(player: PlayerColor, at: PositionInMine, saltToMine: Salts) {
-        transitionRequires("you to mine from a MineChamber") {
-            at.isInACorridor()
-        }
-        transitionRequires("there to be $saltToMine in $at") {
-            saltIsAvailableAt(saltToMine, at)
-        }
-        transitionRequires("you to have a miner at $at") {
-            hasWorkerAt(player, at)
-        }
+        gather(at, player, "mine", saltToMine, this::saltIsAvailableAt)
+
         transitionRequires("you to have enough rested miners at $at") {
             strengthAt(player, at) >= saltToMine.size
         }
@@ -186,6 +166,45 @@ class MagnumSal(private val eventStream: EventStream,
                 .count { (_, miners) -> player !in miners.map { it.player } }
                 .debug { "Miners to pay for transport: $it" }
     }
+
+
+
+
+
+
+    private fun <T> gather(at: PositionInMine,
+                           player: PlayerColor,
+                           action: String,
+                           presence: T,
+                           presenceRequirementChecker: (presence: T, at: PositionInMine) -> Boolean) {
+        requiresYouToHaveAMinerAt(at, player)
+        requiresYouToBeInAMineChamber(action, at)
+        requiresPresenceOf(presence, at, presenceRequirementChecker)
+    }
+
+    private fun <T> requiresPresenceOf(presenceType: T, at: PositionInMine,
+                                       presenceRequirementChecker: (presence: T, at: PositionInMine) -> Boolean) {
+        transitionRequires("there to be $presenceType in $at") {
+            presenceRequirementChecker(presenceType, at)
+        }
+    }
+
+    private fun requiresYouToBeInAMineChamber(action: String, at: PositionInMine) {
+        transitionRequires("you to $action from a MineChamber") {
+            at.isInACorridor()
+        }
+    }
+
+    private fun requiresYouToHaveAMinerAt(at: PositionInMine, player: PlayerColor) {
+        transitionRequires("you to have a miner at $at") {
+            hasWorkerAt(player, at)
+        }
+    }
+
+
+
+
+
 
     private fun zlotyForPlayer(player: PlayerColor): Zloty {
         return zlotyPerPlayer.forPlayer(player).debug { "$player currently has $it zł" }
