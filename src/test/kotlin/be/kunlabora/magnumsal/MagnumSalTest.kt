@@ -933,19 +933,6 @@ class MagnumSalTest {
                     .doesNotHaveAnyElementsOfTypes(ZlotyPaid::class.java)
         }
 
-        /*
-         * Thank you so much ForeverMash for the brainstorm on this!
-         * option the 1st: introduce PlayerInitializedEvent  ->
-         *   Will be needing it anyway soon(tm)
-         *   Will provide a nice hook to setup players in tests, without screwing with the main production code too much
-         *   Is going to be much more code to write T_T
-         * option the 2nd: introduce SnapshotEvent to get a "marker" from where to start asserting events ->
-         *   More work than option 3, might also (at a later stage) impact actual production code
-         *   But getting events to assert is quite simple, more explicit in code (QoL for future devs), re-use of setup in multiple tests will be easier
-         * option the 3rd: only fetching the last X amount of events -> Nice because simple implementation + leaves options in the setupEvents thing.
-         *   going with this for now because it's simply the least amount of code, but will probably refactor towards option 1 at a later stage (when introducing players get assigned a bunch of initial workers)
-         */
-
         @Test
         fun `A player uses the pumphouse to pump out two watercubes of one minechamber and pays 2 złoty`() {
 
