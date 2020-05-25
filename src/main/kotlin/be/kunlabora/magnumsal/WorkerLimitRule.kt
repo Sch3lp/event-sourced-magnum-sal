@@ -1,7 +1,7 @@
 package be.kunlabora.magnumsal
 
-import be.kunlabora.magnumsal.MagnumSalEvent.MinerMovementEvent.MinerPlaced
-import be.kunlabora.magnumsal.MagnumSalEvent.MinerMovementEvent.MinerRemoved
+import be.kunlabora.magnumsal.MagnumSalEvent.PlayerActionEvent.MinerMovementEvent.MinerPlaced
+import be.kunlabora.magnumsal.MagnumSalEvent.PlayerActionEvent.MinerMovementEvent.MinerRemoved
 import be.kunlabora.magnumsal.exception.transitionRequires
 
 class WorkerLimitRule(private val eventStream: EventStream) {

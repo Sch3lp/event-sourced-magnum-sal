@@ -1,8 +1,6 @@
 package be.kunlabora.magnumsal
 
 import be.kunlabora.magnumsal.MagnumSalEvent.*
-import be.kunlabora.magnumsal.MagnumSalEvent.MinerMovementEvent.MinerPlaced
-import be.kunlabora.magnumsal.MagnumSalEvent.MinerMovementEvent.MinerRemoved
 import be.kunlabora.magnumsal.exception.transitionRequires
 
 class TurnOrderRule(private val eventStream: EventStream) {
@@ -18,19 +16,8 @@ class TurnOrderRule(private val eventStream: EventStream) {
             eventStream.filterEvents<PlayerOrderDetermined>().single()
                     .let { listOfNotNull(it.player1, it.player2, it.player3, it.player4) }
 
-    private val minersPlaced
-        get() = eventStream.filterEvents<MinerPlaced>()
-    private val minersRemoved
-        get() = eventStream.filterEvents<MinerRemoved>()
-    private val saltMined
-        get() = eventStream.filterEvents<SaltMined>()
-    private val passedActions
-        get() = eventStream.filterEvents<PassedAction>()
-    private val waterPumped
-        get() = eventStream.filterEvents<WaterPumped>()
-    //TODO refactor MagnumSalEvents: introduce PlayerActionEvents to have a Player
     private val playerActions
-        get() = minersPlaced.map { it.player } + minersRemoved.map { it.player } + saltMined.map { it.player } + passedActions.map { it.player } + waterPumped.map { it.player }
+        get() = eventStream.filterEvents<PlayerActionEvent>().map { it.player }
 
     private fun itIsTheTurnOf(player: PlayerColor): Boolean {
         return if (inFirstRound()) {

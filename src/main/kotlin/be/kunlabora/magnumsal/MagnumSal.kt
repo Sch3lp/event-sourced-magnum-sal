@@ -1,8 +1,6 @@
 package be.kunlabora.magnumsal
 
 import be.kunlabora.magnumsal.MagnumSalEvent.*
-import be.kunlabora.magnumsal.MagnumSalEvent.MinerMovementEvent.MinerPlaced
-import be.kunlabora.magnumsal.MagnumSalEvent.MinerMovementEvent.MinerRemoved
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyPaid
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyReceived
 import be.kunlabora.magnumsal.MinerMovement.PlaceMiner
@@ -23,9 +21,6 @@ sealed class MagnumSalEvent : Event {
     @JsonTypeName("PlayerOrderDetermined")
     data class PlayerOrderDetermined(val player1: PlayerColor, val player2: PlayerColor, val player3: PlayerColor? = null, val player4: PlayerColor? = null) : MagnumSalEvent()
 
-    @JsonTypeName("PassedTurn")
-    data class PassedAction(val player: PlayerColor) : MagnumSalEvent()
-
     sealed class PaymentEvent(val player: PlayerColor, val zloty: Zloty) : MagnumSalEvent() {
         @JsonTypeName("ZłotyReceived")
         data class ZlotyReceived(private val p: PlayerColor, private val z: Zloty) : PaymentEvent(p, z)
@@ -34,25 +29,30 @@ sealed class MagnumSalEvent : Event {
         data class ZlotyPaid(private val p: PlayerColor, private val z: Zloty) : PaymentEvent(p, z)
     }
 
-    sealed class MinerMovementEvent(val player: PlayerColor, val at: PositionInMine) : MagnumSalEvent() {
-        @JsonTypeName("MinerPlaced")
-        data class MinerPlaced(private val _player: PlayerColor, private val _at: PositionInMine) : MinerMovementEvent(_player,_at)
-
-        @JsonTypeName("MinerRemoved")
-        data class MinerRemoved(private val _player: PlayerColor, private val _at: PositionInMine) : MinerMovementEvent(_player, _at)
-    }
-
     @JsonTypeName("MineChamberRevealed")
     data class MineChamberRevealed(val at: PositionInMine, val tile: MineChamberTile) : MagnumSalEvent()
-
-    @JsonTypeName("SaltMined")
-    data class SaltMined(val player: PlayerColor, val from: PositionInMine, val saltMined: Salts) : MagnumSalEvent()
 
     @JsonTypeName("MinersGotTired")
     data class MinersGotTired(val player: PlayerColor, val from: PositionInMine, val tiredMiners: Int) : MagnumSalEvent()
 
-    @JsonTypeName("WaterPumped")
-    data class WaterPumped(val player: PlayerColor, val from: PositionInMine, val waterPumped: WaterCubes) : MagnumSalEvent()
+    sealed class PlayerActionEvent(val player: PlayerColor): MagnumSalEvent() {
+        @JsonTypeName("PassedTurn")
+        data class PassedAction(val _player: PlayerColor) : PlayerActionEvent(_player)
+
+        sealed class MinerMovementEvent(_player: PlayerColor, val at: PositionInMine) : PlayerActionEvent(_player) {
+            @JsonTypeName("MinerPlaced")
+            data class MinerPlaced(private val __player: PlayerColor, private val _at: PositionInMine) : MinerMovementEvent(__player, _at)
+
+            @JsonTypeName("MinerRemoved")
+            data class MinerRemoved(private val __player: PlayerColor, private val _at: PositionInMine) : MinerMovementEvent(__player, _at)
+        }
+
+        @JsonTypeName("SaltMined")
+        data class SaltMined(val _player: PlayerColor, val from: PositionInMine, val saltMined: Salts) : PlayerActionEvent(_player)
+
+        @JsonTypeName("WaterPumped")
+        data class WaterPumped(val _player: PlayerColor, val from: PositionInMine, val waterPumped: WaterCubes) : PlayerActionEvent(_player)
+    }
 }
 
 class MagnumSal(private val eventStream: EventStream,
@@ -107,13 +107,13 @@ class MagnumSal(private val eventStream: EventStream,
     }
 
     fun pass(player: PlayerColor) {
-        eventStream.push(PassedAction(player))
+        eventStream.push(PlayerActionEvent.PassedAction(player))
     }
 
     fun placeWorkerInMine(player: PlayerColor, at: PositionInMine) = onlyInPlayersTurn(player) {
         withoutBreakingTheChain(PlaceMiner(player, at)) {
             requirePlayerToHaveEnoughWorkers(player)
-            eventStream.push(MinerPlaced(player, at))
+            eventStream.push(PlayerActionEvent.MinerMovementEvent.MinerPlaced(player, at))
             revealMineChamberIfPossible(at)
         }
     }
@@ -121,19 +121,19 @@ class MagnumSal(private val eventStream: EventStream,
     fun removeWorkerFromMine(player: PlayerColor, at: PositionInMine) = onlyInPlayersTurn(player) {
         withoutBreakingTheChain(RemoveMiner(player, at)) {
             requiresYouToHaveAMinerAt(at, player)
-            eventStream.push(MinerRemoved(player, at))
+            eventStream.push(PlayerActionEvent.MinerMovementEvent.MinerRemoved(player, at))
         }
     }
 
     fun mine(player: PlayerColor, at: PositionInMine, saltToMine: Salts, transportCostDistribution: TransportCostDistribution? = null) = onlyInPlayersTurn(player) {
         orderMinersToMine(player, at, saltToMine)
         handleSaltTransport(player, at, transportCostDistribution, saltToMine)
-        eventStream.push(SaltMined(player, at, saltToMine))
+        eventStream.push(PlayerActionEvent.SaltMined(player, at, saltToMine))
     }
 
     fun usePumphouse(player: PlayerColor, at: PositionInMine, waterToPump: WaterCubes) = onlyInPlayersTurn(player) {
         gather(at, player, "pump water", waterToPump, this::waterIsAvailableAt)
-        eventStream.push(WaterPumped(player, at, waterToPump))
+        eventStream.push(PlayerActionEvent.WaterPumped(player, at, waterToPump))
     }
 
     private fun orderMinersToMine(player: PlayerColor, at: PositionInMine, saltToMine: Salts) {
@@ -215,7 +215,7 @@ class MagnumSal(private val eventStream: EventStream,
 
     private fun saltLeftInMineChamber(at: PositionInMine): Salts {
         val saltsOnTile = Salts(revealedMineChambers.single { it.at == at }.tile.salt)
-        return eventStream.filterEvents<SaltMined>().filter { it.from == at }.fold(saltsOnTile) { acc, it -> acc - it.saltMined }
+        return eventStream.filterEvents<PlayerActionEvent.SaltMined>().filter { it.from == at }.fold(saltsOnTile) { acc, it -> acc - it.saltMined }
     }
 
     private fun waterIsAvailableAt(waterToPump: WaterCubes, at: PositionInMine): Boolean =
@@ -223,7 +223,7 @@ class MagnumSal(private val eventStream: EventStream,
 
     private fun waterLeftInMineChamber(at: PositionInMine): WaterCubes {
         val waterOnTile = revealedMineChambers.single { it.at == at }.tile.waterCubes
-        return eventStream.filterEvents<WaterPumped>().filter { it.from == at }.fold(waterOnTile) { acc, it -> acc - it.waterPumped }
+        return eventStream.filterEvents<PlayerActionEvent.WaterPumped>().filter { it.from == at }.fold(waterOnTile) { acc, it -> acc - it.waterPumped }
     }
 
     private fun strengthAt(player: PlayerColor, at: PositionInMine): Int {
@@ -298,7 +298,7 @@ class TransportCostDistribution private constructor(private val from: PlayerColo
     }
 }
 
-data class PaymentTransaction private constructor(val from: ZlotyPaid, val to: ZlotyReceived) {
+class PaymentTransaction private constructor(val from: ZlotyPaid, val to: ZlotyReceived) {
     init {
         require(from.player != to.player) { "Can't create a payment transaction from and to the same player" }
     }
@@ -307,5 +307,25 @@ data class PaymentTransaction private constructor(val from: ZlotyPaid, val to: Z
         fun transaction(from: PlayerColor, to: PlayerColor, amount: Zloty): PaymentTransaction {
             return PaymentTransaction(ZlotyPaid(from, amount), ZlotyReceived(to, amount))
         }
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as PaymentTransaction
+
+        if (from != other.from) return false
+        if (to != other.to) return false
+
+        return true
+    }
+    override fun hashCode(): Int {
+        var result = from.hashCode()
+        result = 31 * result + to.hashCode()
+        return result
+    }
+    override fun toString(): String {
+        return "PaymentTransaction(from=$from, to=$to)"
     }
 }

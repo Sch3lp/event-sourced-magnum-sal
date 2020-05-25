@@ -1,8 +1,7 @@
 package be.kunlabora.magnumsal
 
-import be.kunlabora.magnumsal.MagnumSalEvent.MinerMovementEvent
-import be.kunlabora.magnumsal.MagnumSalEvent.MinerMovementEvent.MinerPlaced
-import be.kunlabora.magnumsal.MagnumSalEvent.MinerMovementEvent.MinerRemoved
+import be.kunlabora.magnumsal.MagnumSalEvent.PlayerActionEvent.MinerMovementEvent
+
 
 class Miners private constructor(private val _miners: List<Miner>) : List<Miner> by _miners {
 
@@ -10,8 +9,8 @@ class Miners private constructor(private val _miners: List<Miner>) : List<Miner>
         fun from(eventStream: EventStream): Miners {
             val miners: List<Miner> = eventStream.filterEvents<MinerMovementEvent>().fold(emptyList()) { acc, event ->
                 when (event) {
-                    is MinerRemoved -> Miner.from(event)?.let { acc - it } ?: acc
-                    is MinerPlaced -> Miner.from(event)?.let { acc + it } ?: acc
+                    is MinerMovementEvent.MinerRemoved -> Miner.from(event)?.let { acc - it } ?: acc
+                    is MinerMovementEvent.MinerPlaced -> Miner.from(event)?.let { acc + it } ?: acc
                 }
             }
             return Miners(miners)
@@ -24,8 +23,8 @@ data class Miner(val player: PlayerColor, val at: PositionInMine) {
 
     companion object {
         fun from(event: MinerMovementEvent): Miner? = when (event) {
-            is MinerRemoved -> Miner(event.player, event.at)
-            is MinerPlaced -> Miner(event.player, event.at)
+            is MinerMovementEvent.MinerRemoved -> Miner(event.player, event.at)
+            is MinerMovementEvent.MinerPlaced -> Miner(event.player, event.at)
         }
     }
 }

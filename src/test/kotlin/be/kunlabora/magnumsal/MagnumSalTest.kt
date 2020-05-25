@@ -1,8 +1,8 @@
 package be.kunlabora.magnumsal
 
 import be.kunlabora.magnumsal.MagnumSalEvent.*
-import be.kunlabora.magnumsal.MagnumSalEvent.MinerMovementEvent.MinerPlaced
-import be.kunlabora.magnumsal.MagnumSalEvent.MinerMovementEvent.MinerRemoved
+import be.kunlabora.magnumsal.MagnumSalEvent.PlayerActionEvent.MinerMovementEvent.MinerPlaced
+import be.kunlabora.magnumsal.MagnumSalEvent.PlayerActionEvent.MinerMovementEvent.MinerRemoved
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyPaid
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyReceived
 import be.kunlabora.magnumsal.PlayerColor.*
@@ -539,8 +539,8 @@ class MagnumSalTest {
                     .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(BROWN)) }
                     .withMessage("Transition requires there to be 1 Brown salt in ${at(2, 1)}")
 
-            assertThat(eventStream.filterEvents<SaltMined>())
-                    .doesNotContain(SaltMined(White, at(2, 1), Salts(BROWN)))
+            assertThat(eventStream.filterEvents<PlayerActionEvent.SaltMined>())
+                    .doesNotContain(PlayerActionEvent.SaltMined(White, at(2, 1), Salts(BROWN)))
         }
 
         @Test
@@ -597,7 +597,7 @@ class MagnumSalTest {
 
                 magnumSal.mine(White, at(2, 1), Salts(GREEN, GREEN, WHITE))
 
-                assertThat(eventStream).containsOnlyOnce(SaltMined(White, at(2, 1), Salts(GREEN, GREEN, WHITE)))
+                assertThat(eventStream).containsOnlyOnce(PlayerActionEvent.SaltMined(White, at(2, 1), Salts(GREEN, GREEN, WHITE)))
             }
         }
 
@@ -897,7 +897,6 @@ class MagnumSalTest {
 
         @Test
         fun `A player cannot use the pumphouse, when they do not have enough złoty`() {
-            //TODO FIRST REFACTOR pumping water!!!!
             //TODO THEN REFACTOR player actions in turn order, you've stalled long enough!!!
         }
 

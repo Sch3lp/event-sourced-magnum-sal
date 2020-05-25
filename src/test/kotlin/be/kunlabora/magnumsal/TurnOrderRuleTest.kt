@@ -1,6 +1,6 @@
 package be.kunlabora.magnumsal
 
-import be.kunlabora.magnumsal.MagnumSalEvent.MinerMovementEvent.MinerPlaced
+import be.kunlabora.magnumsal.MagnumSalEvent.PlayerActionEvent.MinerMovementEvent.MinerPlaced
 import be.kunlabora.magnumsal.PlayerColor.*
 import be.kunlabora.magnumsal.PositionInMine.Companion.at
 import be.kunlabora.magnumsal.exception.IllegalTransitionException
