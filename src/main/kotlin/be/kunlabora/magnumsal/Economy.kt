@@ -1,12 +1,14 @@
 package be.kunlabora.magnumsal
 
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent
+import be.kunlabora.magnumsal.MagnumSalEvent.PersonThatCanHandleZloty
+import be.kunlabora.magnumsal.MagnumSalEvent.PersonThatCanHandleZloty.Player
 import be.kunlabora.magnumsal.gamepieces.Zloty
 
 data class ZlotyPerPlayer(private val eventStream: EventStream) {
-    private val _zlotyPerPlayer: Map<PlayerColor, Zloty>
+    private val _zlotyPerPersonThatCanHandleZloty: Map<PersonThatCanHandleZloty, Zloty>
         get() = eventStream.filterEvents<PaymentEvent>()
-                .groupBy(PaymentEvent::player)
+                .groupBy(PaymentEvent::person)
                 .mapValues { (_, payments) ->
                     payments.fold(0) { acc, payment ->
                         when (payment) {
@@ -16,6 +18,8 @@ data class ZlotyPerPlayer(private val eventStream: EventStream) {
                     }
                 }
 
-    fun all() = _zlotyPerPlayer
-    fun forPlayer(player: PlayerColor) : Zloty = _zlotyPerPlayer[player] ?: 0
+    fun all() = _zlotyPerPersonThatCanHandleZloty
+    //TODO fix signature: player should be a Player not a PlayerColor
+    fun forPlayer(player: PlayerColor) : Zloty = _zlotyPerPersonThatCanHandleZloty
+            .filterKeys { it is Player }[Player(player)] ?: 0
 }

@@ -5,6 +5,7 @@ import be.kunlabora.magnumsal.MagnumSalEvent.PlayerActionEvent.MinerMovementEven
 import be.kunlabora.magnumsal.MagnumSalEvent.PlayerActionEvent.MinerMovementEvent.MinerRemoved
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyPaid
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyReceived
+import be.kunlabora.magnumsal.MagnumSalEvent.PersonThatCanHandleZloty.Bank
 import be.kunlabora.magnumsal.PlayerColor.*
 import be.kunlabora.magnumsal.PositionInMine.Companion.at
 import be.kunlabora.magnumsal.TransportCostDistribution.TransportCosts.transportCostDistribution
@@ -153,10 +154,10 @@ class MagnumSalTest {
                             PlayerJoined("Gargamel", Orange),
                             PlayerJoined("Snarf", Purple),
                             PlayerOrderDetermined(Orange, Black, Purple, White),
-                            ZlotyReceived(Orange, 10),
-                            ZlotyReceived(Black, 12),
-                            ZlotyReceived(Purple, 14),
-                            ZlotyReceived(White, 16)
+                            ZlotyReceived(PersonThatCanHandleZloty.Player(Orange), 10),
+                            ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 12),
+                            ZlotyReceived(PersonThatCanHandleZloty.Player(Purple), 14),
+                            ZlotyReceived(PersonThatCanHandleZloty.Player(White), 16)
                     )
         }
 
@@ -174,8 +175,8 @@ class MagnumSalTest {
                             PlayerJoined("Bruno", White),
                             PlayerJoined("Tim", Black),
                             PlayerOrderDetermined(Black, White),
-                            ZlotyReceived(Black, 10),
-                            ZlotyReceived(White, 12)
+                            ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 10),
+                            ZlotyReceived(PersonThatCanHandleZloty.Player(White), 12)
                     )
         }
     }
@@ -673,7 +674,7 @@ class MagnumSalTest {
                 })
 
                 assertThat(testMagnumSal.filterEvents<PaymentEvent>())
-                        .containsExactlyInAnyOrder(ZlotyPaid(White, 2), ZlotyReceived(Black, 2))
+                        .containsExactlyInAnyOrder(ZlotyPaid(PersonThatCanHandleZloty.Player(White), 2), ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 2))
                 magnumSal.visualizeZloty()
             }
 
@@ -699,7 +700,7 @@ class MagnumSalTest {
                         }
                         .withMessage("Transition requires you not to pay more złoty for salt transport than is required")
 
-                assertThat(eventStream).doesNotContain(ZlotyPaid(White, 6), ZlotyReceived(Black, 6))
+                assertThat(eventStream).doesNotContain(ZlotyPaid(PersonThatCanHandleZloty.Player(White), 6), ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 6))
             }
 
             @Test
@@ -724,7 +725,7 @@ class MagnumSalTest {
                         }
                         .withMessage("Transition requires you to have enough złoty to pay for salt transport bringing your mined salt out of the mine")
 
-                assertThat(eventStream).doesNotContain(ZlotyPaid(White, 4), ZlotyReceived(Black, 4))
+                assertThat(eventStream).doesNotContain(ZlotyPaid(PersonThatCanHandleZloty.Player(White), 4), ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 4))
             }
 
             @Test
@@ -749,7 +750,7 @@ class MagnumSalTest {
                         }
                         .withMessage("Transition requires you not to pay more złoty for salt transport than is required")
 
-                assertThat(eventStream).doesNotContain(ZlotyPaid(White, 3), ZlotyPaid(White, 3), ZlotyReceived(Black, 3), ZlotyReceived(Orange, 3))
+                assertThat(eventStream).doesNotContain(ZlotyPaid(PersonThatCanHandleZloty.Player(White), 3), ZlotyPaid(PersonThatCanHandleZloty.Player(White), 3), ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 3), ZlotyReceived(PersonThatCanHandleZloty.Player(Orange), 3))
             }
 
             @Test
@@ -776,7 +777,7 @@ class MagnumSalTest {
                         .withMessage("Transition requires you to have enough złoty to pay for salt transport bringing your mined salt out of the mine")
 
                 assertThat(testMagnumSal.filterEvents<PaymentEvent>())
-                        .doesNotContain(ZlotyPaid(White, 2), ZlotyPaid(White, 2), ZlotyReceived(Black, 2), ZlotyReceived(Orange, 2))
+                        .doesNotContain(ZlotyPaid(PersonThatCanHandleZloty.Player(White), 2), ZlotyPaid(PersonThatCanHandleZloty.Player(White), 2), ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 2), ZlotyReceived(PersonThatCanHandleZloty.Player(Orange), 2))
             }
 
             @Test
@@ -798,8 +799,8 @@ class MagnumSalTest {
 
                 assertThat(testMagnumSal.filterEvents<PaymentEvent>())
                         .containsExactlyInAnyOrder(
-                                ZlotyPaid(White, 1), ZlotyReceived(Black, 1),
-                                ZlotyPaid(White, 1), ZlotyReceived(Orange, 1)
+                                ZlotyPaid(PersonThatCanHandleZloty.Player(White), 1), ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 1),
+                                ZlotyPaid(PersonThatCanHandleZloty.Player(White), 1), ZlotyReceived(PersonThatCanHandleZloty.Player(Orange), 1)
                         )
             }
         }
@@ -876,6 +877,38 @@ class MagnumSalTest {
         }
 
         @Test
+        fun `A player cannot use the pumphouse for pumping no 0 watercubes`() {
+            val magnumSal = TestMagnumSal(eventStream)
+                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 1))
+                    .withPlayersInOrder("Bruno" using White, "Tim" using Black)
+                    .build()
+
+            magnumSal.placeWorkerInMine(White, at(1,0))
+            magnumSal.placeWorkerInMine(Black, at(2,0))
+            magnumSal.placeWorkerInMine(White, at(2,1))
+
+            assertThatExceptionOfType(IllegalTransitionException::class.java)
+                    .isThrownBy { magnumSal.usePumphouse(White, at(2,1), 0) }
+                    .withMessage("Transition requires you to want to pump at least SOME water")
+        }
+
+        @Test
+        fun `A player cannot use the pumphouse for pumping more than 4 watercubes`() {
+            val magnumSal = TestMagnumSal(eventStream)
+                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 1))
+                    .withPlayersInOrder("Bruno" using White, "Tim" using Black)
+                    .build()
+
+            magnumSal.placeWorkerInMine(White, at(1,0))
+            magnumSal.placeWorkerInMine(Black, at(2,0))
+            magnumSal.placeWorkerInMine(White, at(2,1))
+
+            assertThatExceptionOfType(IllegalTransitionException::class.java)
+                    .isThrownBy { magnumSal.usePumphouse(White, at(2,1), 5) }
+                    .withMessage("Transition requires you to not want to pump more than the pumphouse allows")
+        }
+
+        @Test
         fun `A player cannot use the pumphouse, when there is no longer water present in a minechamber`() {
             val magnumSal = TestMagnumSal(eventStream)
                     .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 1))
@@ -914,6 +947,24 @@ class MagnumSalTest {
         }
 
         @Test
+        fun `A player cannot use the pumphouse, when they do not have enough złoty when trying to pump the max amount of water`() {
+            val magnumSal = TestMagnumSal(eventStream)
+                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 4))
+                    .withPlayersInOrder("Bruno" using White, "Tim" using Black)
+                    .withPlayerHaving(White, 8)
+                    .build()
+
+            magnumSal.placeWorkerInMine(White, at(1,0))
+            magnumSal.placeWorkerInMine(Black, at(2,0))
+
+            magnumSal.placeWorkerInMine(White, at(2,1))
+
+            assertThatExceptionOfType(IllegalTransitionException::class.java)
+                    .isThrownBy { magnumSal.usePumphouse(White, at(2,1), 4) }
+                    .withMessage("Transition requires you to have enough złoty to pay for using the pumphouse")
+        }
+
+        @Test
         fun `A player uses the pumphouse to pump out one watercube of one minechamber and pays nothing`() {
             val testMagnumSal = TestMagnumSal(eventStream)
                     .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 4))
@@ -923,29 +974,70 @@ class MagnumSalTest {
 
             magnumSal.placeWorkerInMine(White, at(1,0))
             magnumSal.placeWorkerInMine(Black, at(2,0))
-
             magnumSal.placeWorkerInMine(White, at(2,1))
 
             magnumSal.usePumphouse(White, at(2,1), 1)
 
-            val actualPaymentEvents = testMagnumSal.filterEvents<PaymentEvent>()
-            assertThat(actualPaymentEvents.filter { it.player == White })
-                    .doesNotHaveAnyElementsOfTypes(ZlotyPaid::class.java)
+            val actualPaymentEvents = testMagnumSal.filterEvents<ZlotyPaid>()
+            assertThat(actualPaymentEvents.filter { it.person == PersonThatCanHandleZloty.Player(White) })
+                    .isEmpty()
         }
 
         @Test
         fun `A player uses the pumphouse to pump out two watercubes of one minechamber and pays 2 złoty`() {
+            val testMagnumSal = TestMagnumSal(eventStream)
+                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 4))
+                    .withPlayersInOrder("Bruno" using White, "Tim" using Black)
+                    .withPlayerHaving(White, 9)
+            val magnumSal = testMagnumSal.build()
 
+            magnumSal.placeWorkerInMine(White, at(1,0))
+            magnumSal.placeWorkerInMine(Black, at(2,0))
+            magnumSal.placeWorkerInMine(White, at(2,1))
+
+            magnumSal.usePumphouse(White, at(2,1), 2)
+
+            val actualPaymentEvents = testMagnumSal.filterEvents<PaymentEvent>()
+            assertThat(actualPaymentEvents)
+                    .containsOnly(ZlotyPaid(PersonThatCanHandleZloty.Player(White), 2), ZlotyReceived(Bank, 2))
         }
 
         @Test
         fun `A player uses the pumphouse to pump out three watercubes of one minechamber and pays 5 złoty`() {
+            val testMagnumSal = TestMagnumSal(eventStream)
+                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 4))
+                    .withPlayersInOrder("Bruno" using White, "Tim" using Black)
+                    .withPlayerHaving(White, 9)
+            val magnumSal = testMagnumSal.build()
 
+            magnumSal.placeWorkerInMine(White, at(1,0))
+            magnumSal.placeWorkerInMine(Black, at(2,0))
+            magnumSal.placeWorkerInMine(White, at(2,1))
+
+            magnumSal.usePumphouse(White, at(2,1), 3)
+
+            val actualPaymentEvents = testMagnumSal.filterEvents<PaymentEvent>()
+            assertThat(actualPaymentEvents)
+                    .containsOnly(ZlotyPaid(PersonThatCanHandleZloty.Player(White), 5), ZlotyReceived(Bank, 5))
         }
 
         @Test
         fun `A player uses the pumphouse to pump out all four of the watercubes of one minechamber and pays 9 złoty`() {
+            val testMagnumSal = TestMagnumSal(eventStream)
+                    .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 4))
+                    .withPlayersInOrder("Bruno" using White, "Tim" using Black)
+                    .withPlayerHaving(White, 9)
+            val magnumSal = testMagnumSal.build()
 
+            magnumSal.placeWorkerInMine(White, at(1,0))
+            magnumSal.placeWorkerInMine(Black, at(2,0))
+            magnumSal.placeWorkerInMine(White, at(2,1))
+
+            magnumSal.usePumphouse(White, at(2,1), 4)
+
+            val actualPaymentEvents = testMagnumSal.filterEvents<PaymentEvent>()
+            assertThat(actualPaymentEvents)
+                    .containsOnly(ZlotyPaid(PersonThatCanHandleZloty.Player(White), 9), ZlotyReceived(Bank, 9))
         }
     }
 }

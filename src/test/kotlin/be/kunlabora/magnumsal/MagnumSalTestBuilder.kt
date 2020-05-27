@@ -2,12 +2,12 @@ package be.kunlabora.magnumsal
 
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyPaid
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyReceived
+import be.kunlabora.magnumsal.MagnumSalEvent.PersonThatCanHandleZloty
 import be.kunlabora.magnumsal.PlayerColor.*
 import be.kunlabora.magnumsal.PositionInMine.Companion.at
 import be.kunlabora.magnumsal.gamepieces.AllMineChamberTiles
 import be.kunlabora.magnumsal.gamepieces.MineChamberTile
 import be.kunlabora.magnumsal.gamepieces.Zloty
-import java.time.LocalDateTime.now
 
 data class Player(val name: PlayerName, val color: PlayerColor)
 
@@ -193,12 +193,10 @@ fun TestMagnumSal.withOnlyMineChamberTilesOf(tile: MineChamberTile): TestMagnumS
 }
 
 fun TestMagnumSal.withPlayerHaving(player: PlayerColor, zł: Zloty): TestMagnumSal {
-    val currentTotalZł = this.eventStream.filterEvents<ZlotyReceived>()
-            .filter { it.player == player }
-            .sumBy { it.zloty }
+    val currentTotalZł = ZlotyPerPlayer(eventStream).forPlayer(player)
     when {
-        currentTotalZł > zł -> this.eventStream.push(ZlotyPaid(player, currentTotalZł - zł))
-        currentTotalZł < zł -> this.eventStream.push(ZlotyReceived(player, currentTotalZł - zł))
+        currentTotalZł > zł -> this.eventStream.push(ZlotyPaid(PersonThatCanHandleZloty.Player(player), currentTotalZł - zł))
+        currentTotalZł < zł -> this.eventStream.push(ZlotyReceived(PersonThatCanHandleZloty.Player(player), currentTotalZł - zł))
     }
     return this
 }

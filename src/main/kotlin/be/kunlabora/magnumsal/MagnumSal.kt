@@ -3,6 +3,8 @@ package be.kunlabora.magnumsal
 import be.kunlabora.magnumsal.MagnumSalEvent.*
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyPaid
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyReceived
+import be.kunlabora.magnumsal.MagnumSalEvent.PersonThatCanHandleZloty.Bank
+import be.kunlabora.magnumsal.MagnumSalEvent.PersonThatCanHandleZloty.Player
 import be.kunlabora.magnumsal.MagnumSalEvent.PlayerActionEvent.WaterPumped
 import be.kunlabora.magnumsal.MinerMovement.PlaceMiner
 import be.kunlabora.magnumsal.MinerMovement.RemoveMiner
@@ -45,14 +47,18 @@ sealed class MagnumSalEvent : Event {
         data class WaterPumped(val _player: PlayerColor, val from: PositionInMine, val waterPumped: WaterCubes) : PlayerActionEvent(_player)
     }
 
+    sealed class PersonThatCanHandleZloty {
+        object Bank: PersonThatCanHandleZloty()
+        data class Player(val player: PlayerColor) : PersonThatCanHandleZloty()
+    }
 
     // Side-effect events, but therefor not necessarily less important, still contains domain language/concepts
-    sealed class PaymentEvent(val player: PlayerColor, val zloty: Zloty) : MagnumSalEvent() {
+    sealed class PaymentEvent(val person: PersonThatCanHandleZloty, val zloty: Zloty) : MagnumSalEvent() {
         @JsonTypeName("ZłotyReceived")
-        data class ZlotyReceived(private val p: PlayerColor, private val z: Zloty) : PaymentEvent(p, z)
+        data class ZlotyReceived(private val _person: PersonThatCanHandleZloty, private val _zloty: Zloty) : PaymentEvent(_person, _zloty)
 
         @JsonTypeName("ZlotyPaid")
-        data class ZlotyPaid(private val p: PlayerColor, private val z: Zloty) : PaymentEvent(p, z)
+        data class ZlotyPaid(private val _person: PersonThatCanHandleZloty, private val _zloty: Zloty) : PaymentEvent(_person, _zloty)
     }
 
     @JsonTypeName("MineChamberRevealed")
@@ -108,10 +114,10 @@ class MagnumSal(private val eventStream: EventStream,
         }
         eventStream.push(PlayerOrderDetermined(player1, player2, player3, player4))
 
-        eventStream.push(ZlotyReceived(player1, 10))
-        eventStream.push(ZlotyReceived(player2, 12))
-        player3?.let { eventStream.push(ZlotyReceived(it, 14)) }
-        player4?.let { eventStream.push(ZlotyReceived(it, 16)) }
+        eventStream.push(ZlotyReceived(Player(player1), 10))
+        eventStream.push(ZlotyReceived(Player(player2), 12))
+        player3?.let { eventStream.push(ZlotyReceived(Player(it), 14)) }
+        player4?.let { eventStream.push(ZlotyReceived(Player(it), 16)) }
     }
 
     fun pass(player: PlayerColor) {
@@ -140,16 +146,31 @@ class MagnumSal(private val eventStream: EventStream,
     }
 
     fun usePumphouse(player: PlayerColor, at: PositionInMine, waterToPump: WaterCubes) = onlyInPlayersTurn(player) {
+        transitionRequires("you to want to pump at least SOME water") { waterToPump > 0 }
+        transitionRequires("you to not want to pump more than the pumphouse allows") { waterToPump <= 4 }
         gather(at, player, "pump water", waterToPump, this::waterIsAvailableAt)
         transitionRequires("you to have enough złoty to pay for using the pumphouse") {
-            zlotyForPlayer(player) >= waterPumpCost(waterToPump)
+            zlotyForPlayer(player) >= waterPumpCost(waterToPump) ?: 0
         }
+        payWaterPump(waterToPump, player)
         eventStream.push(WaterPumped(player, at, waterToPump))
-        eventStream.push(ZlotyPaid(player, 1))
     }
 
-    private fun waterPumpCost(waterToPump: WaterCubes): Zloty {
-        return 2
+    private fun payWaterPump(waterToPump: WaterCubes, player: PlayerColor) {
+        waterPumpCost(waterToPump)?.let {
+            with(eventStream) {
+                push(ZlotyPaid(Player(player), it))
+                push(ZlotyReceived(Bank, it))
+            }
+        }
+    }
+
+    private fun waterPumpCost(waterToPump: WaterCubes) : Zloty? = when (waterToPump) {
+        1 -> null
+        2 -> 2
+        3 -> 5
+        4 -> 9
+        else -> null
     }
 
     private fun orderMinersToMine(player: PlayerColor, at: PositionInMine, saltToMine: Salts) {
@@ -316,12 +337,12 @@ class TransportCostDistribution private constructor(private val from: PlayerColo
 
 class PaymentTransaction private constructor(val from: ZlotyPaid, val to: ZlotyReceived) {
     init {
-        require(from.player != to.player) { "Can't create a payment transaction from and to the same player" }
+        require(from.person != to.person) { "Can't create a payment transaction from and to the same player" }
     }
 
     companion object {
         fun transaction(from: PlayerColor, to: PlayerColor, amount: Zloty): PaymentTransaction {
-            return PaymentTransaction(ZlotyPaid(from, amount), ZlotyReceived(to, amount))
+            return PaymentTransaction(ZlotyPaid(Player(from), amount), ZlotyReceived(Player(to), amount))
         }
     }
 
