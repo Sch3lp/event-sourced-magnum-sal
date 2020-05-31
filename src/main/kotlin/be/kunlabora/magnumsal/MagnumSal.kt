@@ -5,6 +5,9 @@ import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyPaid
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyReceived
 import be.kunlabora.magnumsal.MagnumSalEvent.PersonThatCanHandleZloty.Bank
 import be.kunlabora.magnumsal.MagnumSalEvent.PersonThatCanHandleZloty.Player
+import be.kunlabora.magnumsal.MagnumSalEvent.PlayerActionEvent.MinerMovementEvent.MinerPlaced
+import be.kunlabora.magnumsal.MagnumSalEvent.PlayerActionEvent.MinerMovementEvent.MinerRemoved
+import be.kunlabora.magnumsal.MagnumSalEvent.PlayerActionEvent.SaltMined
 import be.kunlabora.magnumsal.MagnumSalEvent.PlayerActionEvent.WaterPumped
 import be.kunlabora.magnumsal.MinerMovement.PlaceMiner
 import be.kunlabora.magnumsal.MinerMovement.RemoveMiner
@@ -25,9 +28,8 @@ sealed class MagnumSalEvent : Event {
     data class PlayerOrderDetermined(val player1: PlayerColor, val player2: PlayerColor, val player3: PlayerColor? = null, val player4: PlayerColor? = null) : MagnumSalEvent()
 
 
-
     // Player actions
-    sealed class PlayerActionEvent(val player: PlayerColor): MagnumSalEvent() {
+    sealed class PlayerActionEvent(val player: PlayerColor) : MagnumSalEvent() {
         @JsonTypeName("PassedTurn")
         data class PassedAction(val _player: PlayerColor) : PlayerActionEvent(_player)
 
@@ -47,7 +49,7 @@ sealed class MagnumSalEvent : Event {
     }
 
     sealed class PersonThatCanHandleZloty {
-        object Bank: PersonThatCanHandleZloty()
+        object Bank : PersonThatCanHandleZloty()
         data class Player(val player: PlayerColor) : PersonThatCanHandleZloty()
     }
 
@@ -126,7 +128,7 @@ class MagnumSal(private val eventStream: EventStream,
     fun placeWorkerInMine(player: PlayerColor, at: PositionInMine) = onlyInPlayersTurn(player) {
         withoutBreakingTheChain(PlaceMiner(player, at)) {
             requirePlayerToHaveEnoughWorkers(player)
-            eventStream.push(PlayerActionEvent.MinerMovementEvent.MinerPlaced(player, at))
+            eventStream.push(MinerPlaced(player, at))
             revealMineChamberIfPossible(at)
         }
     }
@@ -134,14 +136,14 @@ class MagnumSal(private val eventStream: EventStream,
     fun removeWorkerFromMine(player: PlayerColor, at: PositionInMine) = onlyInPlayersTurn(player) {
         withoutBreakingTheChain(RemoveMiner(player, at)) {
             requiresYouToHaveAMinerAt(at, player)
-            eventStream.push(PlayerActionEvent.MinerMovementEvent.MinerRemoved(player, at))
+            eventStream.push(MinerRemoved(player, at))
         }
     }
 
     fun mine(player: PlayerColor, at: PositionInMine, saltToMine: Salts, transportCostDistribution: TransportCostDistribution? = null) = onlyInPlayersTurn(player) {
         orderMinersToMine(player, at, saltToMine)
         handleSaltTransport(player, at, saltToMine, transportCostDistribution)
-        eventStream.push(PlayerActionEvent.SaltMined(player, at, saltToMine))
+        eventStream.push(SaltMined(player, at, saltToMine))
     }
 
     fun usePumphouse(player: PlayerColor, at: PositionInMine, waterToPump: WaterCubes) = onlyInPlayersTurn(player) {
@@ -164,7 +166,7 @@ class MagnumSal(private val eventStream: EventStream,
         }
     }
 
-    private fun waterPumpCost(waterToPump: WaterCubes) : Zloty? = when (waterToPump) {
+    private fun waterPumpCost(waterToPump: WaterCubes): Zloty? = when (waterToPump) {
         1 -> null
         2 -> 2
         3 -> 5
@@ -183,38 +185,12 @@ class MagnumSal(private val eventStream: EventStream,
     }
 
     //TODO: transportCostDistribution, transportChain, and transportCost are coupled but there's low cohesion
-    private fun handleSaltTransport(player: PlayerColor, at: PositionInMine, saltToMine: Salts, transportCostDistribution: TransportCostDistribution?) {
-        transitionRequires("you to have enough złoty to pay for salt transport bringing your mined salt out of the mine") {
-            zlotyForPlayer(player) >= transportCost(saltToMine, player, at)
-        }
-        transitionRequires("you to pay for salt transport when your miners can't cover the complete transport chain") {
-            transportCostDistribution != null || transportCost(saltToMine, player, at) == 0
-        }
-        transitionRequires("you not to pay more złoty for salt transport than is required") {
-            transportCostDistribution == null || transportCostDistribution.totalToPay().debug { "$player intends to pay $it in total for transport" } <= transportCost(saltToMine, player, at)
-        }
-        transitionRequires("you to only pay miners in the transport chain") {
-            everyPlayerInTheDistributionShouldHaveAtLeastOneMinerInTheTransportChain(transportCostDistribution, at, player)
-        }
-        transportCostDistribution?.executeTransactions()?.forEach { eventStream.push(it.from); eventStream.push(it.to) }
+    private fun handleSaltTransport(player: PlayerColor, at: PositionInMine, saltMined: Salts, transportCostDistribution: TransportCostDistribution?) {
+        TransportSaltAction(saltMined, player, at, eventStream)
+                .whenCoveredBy(transportCostDistribution) {
+                    eventStream.push(it.from); eventStream.push(it.to)
+                }
     }
-
-    private fun everyPlayerInTheDistributionShouldHaveAtLeastOneMinerInTheTransportChain(transportCostDistribution: TransportCostDistribution?, fromMineChamber: PositionInMine, playerThatRequiresTransport: PlayerColor) : Boolean {
-        // does not take into account a player having multiple miners and being paid for that
-        // so we could check that a player has at least the same amount of miners than they're being paid for in the transportCostDistribution
-        val transportChain = TransportChain(startingFrom = fromMineChamber, playerThatRequiresTransport = playerThatRequiresTransport, eventStream = eventStream)
-        return transportCostDistribution?.canCover(transportChain) ?: true
-    }
-
-    private fun transportCost(saltToMine: Salts, player: PlayerColor, at: PositionInMine) =
-            saltToMine.size.debug { "Amount of transported salt to pay for: $it" } * transportersNeeded(player, at)
-
-    private fun transportersNeeded(player: PlayerColor, fromMineChamber: PositionInMine): Int =
-            TransportChain(fromMineChamber, player, eventStream).transportersNeeded().debug { "Miners to pay for transport: $it" }
-
-
-
-
 
 
     private fun <T> gather(at: PositionInMine,
@@ -247,10 +223,6 @@ class MagnumSal(private val eventStream: EventStream,
     }
 
 
-
-
-
-
     private fun zlotyForPlayer(player: PlayerColor): Zloty {
         return zlotyPerPlayer.forPlayer(player).debug { "$player currently has $it zł" }
     }
@@ -260,7 +232,7 @@ class MagnumSal(private val eventStream: EventStream,
 
     private fun saltLeftInMineChamber(at: PositionInMine): Salts {
         val saltsOnTile = Salts(revealedMineChambers.single { it.at == at }.tile.salt)
-        return eventStream.filterEvents<PlayerActionEvent.SaltMined>().filter { it.from == at }.fold(saltsOnTile) { acc, it -> acc - it.saltMined }
+        return eventStream.filterEvents<SaltMined>().filter { it.from == at }.fold(saltsOnTile) { acc, it -> acc - it.saltMined }
     }
 
     private fun waterIsAvailableAt(waterToPump: WaterCubes, at: PositionInMine): Boolean =
@@ -351,11 +323,13 @@ class PaymentTransaction private constructor(val from: ZlotyPaid, val to: ZlotyR
 
         return true
     }
+
     override fun hashCode(): Int {
         var result = from.hashCode()
         result = 31 * result + to.hashCode()
         return result
     }
+
     override fun toString(): String {
         return "PaymentTransaction(from=$from, to=$to)"
     }
