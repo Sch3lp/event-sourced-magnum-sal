@@ -34,11 +34,7 @@ class TransportSaltAction(private val saltMined: Salts,
         }
     }
 
-    private fun transportCost(saltMined: Salts) =
-            saltMined.size.debug { "Amount of transported salt to pay for: $it" } * transportersNeeded()
-
-    private fun transportersNeeded() =
-            transportChain.transportersNeeded().debug { "Miners to pay for transport: $it" }
+    private fun transportCost(saltMined: Salts) = transportChain.transportCostFor(saltMined)
 
     private fun transportCanBeCoveredBy(transportCostDistribution: TransportCostDistribution, fromMineChamber: PositionInMine, playerThatRequiresTransport: PlayerColor, events: EventStream) : Boolean {
         // does not take into account a player having multiple miners and being paid for that
