@@ -28,7 +28,7 @@ class TransportSaltAction(private val saltMined: Salts,
                 transportCostDistribution.totalToPay().debug { "$player intends to pay $it in total for transport" } <= transportCost(saltMined)
             }
             transitionRequires("you to only pay miners in the transport chain") {
-                transportCanBeCoveredBy(transportCostDistribution, at, player, eventStream)
+                transportCanBeCoveredBy(transportCostDistribution)
             }
             transportCostDistribution.executeTransactions().forEach(block)
         }
@@ -36,7 +36,7 @@ class TransportSaltAction(private val saltMined: Salts,
 
     private fun transportCost(saltMined: Salts) = transportChain.transportCostFor(saltMined)
 
-    private fun transportCanBeCoveredBy(transportCostDistribution: TransportCostDistribution, fromMineChamber: PositionInMine, playerThatRequiresTransport: PlayerColor, events: EventStream) : Boolean {
+    private fun transportCanBeCoveredBy(transportCostDistribution: TransportCostDistribution) : Boolean {
         // does not take into account a player having multiple miners and being paid for that
         // so we could check that a player has at least the same amount of miners than they're being paid for in the transportCostDistribution
         return transportCostDistribution.canCover(transportChain)
