@@ -182,6 +182,7 @@ class MagnumSal(private val eventStream: EventStream,
         eventStream.push(MinersGotTired(player, at, minersThatWillGetTired))
     }
 
+    //TODO: transportCostDistribution, transportChain, and transportCost are coupled but there's low cohesion
     private fun handleSaltTransport(player: PlayerColor, at: PositionInMine, saltToMine: Salts, transportCostDistribution: TransportCostDistribution?) {
         transitionRequires("you to have enough złoty to pay for salt transport bringing your mined salt out of the mine") {
             zlotyForPlayer(player) >= transportCost(saltToMine, player, at)
@@ -208,14 +209,8 @@ class MagnumSal(private val eventStream: EventStream,
     private fun transportCost(saltToMine: Salts, player: PlayerColor, at: PositionInMine) =
             saltToMine.size.debug { "Amount of transported salt to pay for: $it" } * transportersNeeded(player, at)
 
-    //TODO Refactor this into using a TransportChain class, that we can reuse in the TransportCostDistribution check
-    private fun transportersNeeded(player: PlayerColor, fromMineChamber: PositionInMine): Int {
-        val positionsTheSaltWillTravel = fromMineChamber.positionsUntilTheTop()
-        return miners.filter { it.at in positionsTheSaltWillTravel }
-                .groupBy { it.at }
-                .count { (_, miners) -> player !in miners.map { it.player } }
-                .debug { "Miners to pay for transport: $it" }
-    }
+    private fun transportersNeeded(player: PlayerColor, fromMineChamber: PositionInMine): Int =
+            TransportChain(fromMineChamber, player, eventStream).transportersNeeded().debug { "Miners to pay for transport: $it" }
 
 
 

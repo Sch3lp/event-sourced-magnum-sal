@@ -8,5 +8,6 @@ class TransportChain(startingFrom: PositionInMine, playerThatRequiresTransport: 
             .filterValues { players -> playerThatRequiresTransport !in players }
 
     fun containsAll(keys: Set<PlayerColor>) = transportChain.flatMap { (_, players) -> players }.containsAll(keys)
+    fun transportersNeeded() = transportChain.count()
 
 }
