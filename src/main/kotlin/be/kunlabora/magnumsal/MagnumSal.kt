@@ -184,11 +184,10 @@ class MagnumSal(private val eventStream: EventStream,
         eventStream.push(MinersGotTired(player, at, minersThatWillGetTired))
     }
 
-    //TODO: transportCostDistribution, transportChain, and transportCost are coupled but there's low cohesion
     private fun handleSaltTransport(player: PlayerColor, at: PositionInMine, saltMined: Salts, transportCostDistribution: TransportCostDistribution?) {
         TransportSaltAction(saltMined, player, at, eventStream)
-                .whenCoveredBy(transportCostDistribution) {
-                    eventStream.push(it.from); eventStream.push(it.to)
+                .whenCoveredBy(transportCostDistribution) { paymentTransaction ->
+                    eventStream.push(paymentTransaction.from); eventStream.push(paymentTransaction.to)
                 }
     }
 
