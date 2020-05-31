@@ -28,7 +28,7 @@ class TransportSaltAction(private val saltMined: Salts,
                 transportCostDistribution.totalToPay().debug { "$player intends to pay $it in total for transport" } <= transportCost(saltMined)
             }
             transitionRequires("you to only pay miners in the transport chain") {
-                transportCanBeCoveredBy(transportCostDistribution)
+                transportCanBeCoveredBy(transportCostDistribution, saltMined)
             }
             transportCostDistribution.executeTransactions().forEach(block)
         }
@@ -36,10 +36,10 @@ class TransportSaltAction(private val saltMined: Salts,
 
     private fun transportCost(saltMined: Salts) = transportChain.transportCostFor(saltMined)
 
-    private fun transportCanBeCoveredBy(transportCostDistribution: TransportCostDistribution) : Boolean {
+    private fun transportCanBeCoveredBy(transportCostDistribution: TransportCostDistribution, saltMined: Salts) : Boolean {
         // does not take into account a player having multiple miners and being paid for that
         // so we could check that a player has at least the same amount of miners than they're being paid for in the transportCostDistribution
-        return transportCostDistribution.canCover(transportChain)
+        return transportCostDistribution.canCover(transportChain, saltMined)
     }
 
     //TODO: figure out a way to remove the duplication with debug() in MagnumSal (maybe introduce Debuggable interface?)

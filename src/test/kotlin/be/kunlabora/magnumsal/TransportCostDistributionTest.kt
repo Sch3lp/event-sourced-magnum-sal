@@ -3,6 +3,7 @@ package be.kunlabora.magnumsal
 import be.kunlabora.magnumsal.PlayerColor.*
 import be.kunlabora.magnumsal.PositionInMine.Companion.at
 import be.kunlabora.magnumsal.TransportCostDistribution.TransportCosts.transportCostDistribution
+import be.kunlabora.magnumsal.gamepieces.Salts
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
@@ -27,7 +28,7 @@ class TransportCostDistributionTest {
                 )
         )
 
-        assertThat(distribution.canCover(transportChain.build())).isTrue()
+        assertThat(distribution.canCover(transportChain.build(), Salts())).isTrue()
     }
 
     @Test
@@ -45,7 +46,7 @@ class TransportCostDistributionTest {
                 )
         )
 
-        assertThat(distribution.canCover(transportChain.build())).isFalse()
+        assertThat(distribution.canCover(transportChain.build(), Salts())).isFalse()
     }
 
     @Test
@@ -63,6 +64,6 @@ class TransportCostDistributionTest {
                 )
         )
 
-        assertThat(distribution.canCover(transportChain.build())).isFalse()
+        assertThat(distribution.canCover(transportChain.build(), Salts())).isFalse()
     }
 }
