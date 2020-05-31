@@ -6,6 +6,7 @@ import be.kunlabora.magnumsal.MagnumSalEvent.PlayerActionEvent.MinerMovementEven
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyPaid
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyReceived
 import be.kunlabora.magnumsal.MagnumSalEvent.PersonThatCanHandleZloty.Bank
+import be.kunlabora.magnumsal.MagnumSalEvent.PlayerActionEvent.SaltMined
 import be.kunlabora.magnumsal.PlayerColor.*
 import be.kunlabora.magnumsal.PositionInMine.Companion.at
 import be.kunlabora.magnumsal.TransportCostDistribution.TransportCosts.transportCostDistribution
@@ -533,15 +534,15 @@ class MagnumSalTest {
             magnumSal.placeWorkerInMine(White, at(2, 1))
             magnumSal.placeWorkerInMine(Black, at(2, 1))
 
-            magnumSal.mine(Black, at(2, 1), Salts(BROWN, WHITE))
-            magnumSal.mine(White, at(2, 1), Salts(GREEN))
+            magnumSal.mine(Black, at(2, 1), Salts(BROWN, WHITE), with(transportCostDistribution(Black)) { pay(White, 2) })
+            magnumSal.mine(White, at(2, 1), Salts(GREEN), with(transportCostDistribution(White)) { pay(Black, 1) })
 
             assertThatExceptionOfType(IllegalTransitionException::class.java)
-                    .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(BROWN)) }
+                    .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(BROWN), with(transportCostDistribution(White)) { pay(Black, 1) }) }
                     .withMessage("Transition requires there to be 1 Brown salt in ${at(2, 1)}")
 
-            assertThat(eventStream.filterEvents<PlayerActionEvent.SaltMined>())
-                    .doesNotContain(PlayerActionEvent.SaltMined(White, at(2, 1), Salts(BROWN)))
+            assertThat(eventStream.filterEvents<SaltMined>())
+                    .doesNotContain(SaltMined(White, at(2, 1), Salts(BROWN)))
         }
 
         @Test
@@ -551,10 +552,13 @@ class MagnumSalTest {
                     .withFourWhiteMinersAtFirstRightMineChamber()
                     .build()
 
-            magnumSal.mine(White, at(2, 1), Salts(WHITE))
+            val transportCostDistribution = with(transportCostDistribution(White)) {
+                pay(Black, 1)
+            }
+            magnumSal.mine(White, at(2, 1), Salts(WHITE), transportCostDistribution)
 
             assertThatExceptionOfType(IllegalTransitionException::class.java)
-                    .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(WHITE)) }
+                    .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(WHITE), transportCostDistribution) }
                     .withMessage("Transition requires there to be 1 White salt in ${at(2, 1)}")
         }
 
@@ -596,9 +600,9 @@ class MagnumSalTest {
 
                 assertThat(Miners.from(eventStream).filter { it.player == White && it.at == at(2, 1) }).hasSize(4)
 
-                magnumSal.mine(White, at(2, 1), Salts(GREEN, GREEN, WHITE))
+                magnumSal.mine(White, at(2, 1), Salts(GREEN, GREEN, WHITE), with(transportCostDistribution(White)) { pay(Black, 3) })
 
-                assertThat(eventStream).containsOnlyOnce(PlayerActionEvent.SaltMined(White, at(2, 1), Salts(GREEN, GREEN, WHITE)))
+                assertThat(eventStream).containsOnlyOnce(SaltMined(White, at(2, 1), Salts(GREEN, GREEN, WHITE)))
             }
         }
 
@@ -612,10 +616,10 @@ class MagnumSalTest {
                         .withDebugger()
                         .build()
 
-                magnumSal.mine(White, at(2, 1), Salts(BROWN, BROWN, GREEN, GREEN))
+                magnumSal.mine(White, at(2, 1), Salts(BROWN, BROWN, GREEN, GREEN), with(transportCostDistribution(White)) { pay(Black, 4) })
 
                 assertThatExceptionOfType(IllegalTransitionException::class.java)
-                        .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(WHITE, WHITE)) }
+                        .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(WHITE, WHITE), with(transportCostDistribution(White)) { pay(Black, 2) }) }
                         .withMessage("Transition requires you to have enough rested miners at ${at(2, 1)}")
             }
 
@@ -627,12 +631,12 @@ class MagnumSalTest {
                         .build()
 
                 // tire 3 workers: 1 from mining and 2 from holding back water
-                magnumSal.mine(White, at(2, 1), Salts(BROWN))
+                magnumSal.mine(White, at(2, 1), Salts(BROWN), with(transportCostDistribution(White)) { pay(Black, 1) })
 
                 // since the water wasn't pumped out it remains, so strength required is 2 water + 1 salt = 3,
                 // but there should only be 1 rested miner left
                 assertThatExceptionOfType(IllegalTransitionException::class.java)
-                        .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(WHITE)) }
+                        .isThrownBy { magnumSal.mine(White, at(2, 1), Salts(WHITE), with(transportCostDistribution(White)) { pay(Black, 1) }) }
                         .withMessage("Transition requires you to have enough rested miners at ${at(2, 1)}")
             }
         }
@@ -676,6 +680,28 @@ class MagnumSalTest {
                 assertThat(testMagnumSal.filterEvents<PaymentEvent>())
                         .containsExactlyInAnyOrder(ZlotyPaid(PersonThatCanHandleZloty.Player(White), 2), ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 2))
                 magnumSal.visualizeZloty()
+            }
+
+            @Test
+            fun `When transport is required, then a transportDistribution is also required`() {
+                val magnumSal = TestMagnumSal(eventStream)
+                        .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
+                        .withFourWhiteMinersAtFirstRightMineChamber()
+                        .withPlayerHaving(White, 6) //White is nor at(1,0) or at(2,0)
+                        .withDebugger()
+                        .build()
+                magnumSal.removeWorkerFromMine(White, at(1, 0))
+                magnumSal.visualizeMiners()
+                magnumSal.visualizeZloty()
+
+                assertThatExceptionOfType(IllegalTransitionException::class.java)
+                        .isThrownBy {
+                            magnumSal.mine(White, at(2, 1), Salts(WHITE, WHITE), null)
+                            magnumSal.visualizeZloty()
+                        }
+                        .withMessage("Transition requires you to pay for salt transport when your miners can't cover the complete transport chain")
+
+                assertThat(eventStream).doesNotContain(SaltMined(White, at(2,1), Salts(WHITE, WHITE)))
             }
 
             @Test
@@ -799,6 +825,39 @@ class MagnumSalTest {
 
                 assertThat(testMagnumSal.filterEvents<PaymentEvent>())
                         .containsExactlyInAnyOrder(
+                                ZlotyPaid(PersonThatCanHandleZloty.Player(White), 1), ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 1),
+                                ZlotyPaid(PersonThatCanHandleZloty.Player(White), 1), ZlotyReceived(PersonThatCanHandleZloty.Player(Orange), 1)
+                        )
+            }
+
+            @Test
+            fun `Paying multiple players, where one of the players you want to pay has no miner in the transport chain should be impossible`() {
+                val testMagnumSal = TestMagnumSal(eventStream)
+                        .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
+                        .withTwoWhiteMinersAtFirstRightMineChamberWithThreePlayers()
+                        .withPlayerHaving(White, 4)
+                        .withDebugger()
+                val magnumSal = testMagnumSal.build()
+
+                magnumSal.pass(White)
+                magnumSal.pass(White)
+                magnumSal.pass(Black)
+                magnumSal.pass(Black)
+                magnumSal.removeWorkerFromMine(Orange, at(2,0))
+                magnumSal.removeWorkerFromMine(Orange, at(2,0))
+                magnumSal.visualizeMiners()
+                magnumSal.visualizeZloty()
+
+                assertThatExceptionOfType(IllegalTransitionException::class.java)
+                        .isThrownBy {
+                            magnumSal.mine(White, at(2, 1), Salts(WHITE, WHITE), with(transportCostDistribution(White)) {
+                                pay(Black, 1)
+                                pay(Orange, 1)
+                            })
+                        }.withMessage("Transition requires you to only pay miners in the transport chain")
+
+                assertThat(testMagnumSal.filterEvents<PaymentEvent>())
+                        .doesNotContain(
                                 ZlotyPaid(PersonThatCanHandleZloty.Player(White), 1), ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 1),
                                 ZlotyPaid(PersonThatCanHandleZloty.Player(White), 1), ZlotyReceived(PersonThatCanHandleZloty.Player(Orange), 1)
                         )

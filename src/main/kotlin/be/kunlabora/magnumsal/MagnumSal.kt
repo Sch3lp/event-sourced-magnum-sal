@@ -8,7 +8,6 @@ import be.kunlabora.magnumsal.MagnumSalEvent.PersonThatCanHandleZloty.Player
 import be.kunlabora.magnumsal.MagnumSalEvent.PlayerActionEvent.WaterPumped
 import be.kunlabora.magnumsal.MinerMovement.PlaceMiner
 import be.kunlabora.magnumsal.MinerMovement.RemoveMiner
-import be.kunlabora.magnumsal.PaymentTransaction.Companion.transaction
 import be.kunlabora.magnumsal.exception.transitionRequires
 import be.kunlabora.magnumsal.gamepieces.*
 import com.fasterxml.jackson.annotation.JsonTypeInfo
@@ -141,7 +140,7 @@ class MagnumSal(private val eventStream: EventStream,
 
     fun mine(player: PlayerColor, at: PositionInMine, saltToMine: Salts, transportCostDistribution: TransportCostDistribution? = null) = onlyInPlayersTurn(player) {
         orderMinersToMine(player, at, saltToMine)
-        handleSaltTransport(player, at, transportCostDistribution, saltToMine)
+        handleSaltTransport(player, at, saltToMine, transportCostDistribution)
         eventStream.push(PlayerActionEvent.SaltMined(player, at, saltToMine))
     }
 
@@ -183,19 +182,33 @@ class MagnumSal(private val eventStream: EventStream,
         eventStream.push(MinersGotTired(player, at, minersThatWillGetTired))
     }
 
-    private fun handleSaltTransport(player: PlayerColor, at: PositionInMine, transportCostDistribution: TransportCostDistribution?, saltToMine: Salts) {
+    private fun handleSaltTransport(player: PlayerColor, at: PositionInMine, saltToMine: Salts, transportCostDistribution: TransportCostDistribution?) {
         transitionRequires("you to have enough złoty to pay for salt transport bringing your mined salt out of the mine") {
             zlotyForPlayer(player) >= transportCost(saltToMine, player, at)
+        }
+        transitionRequires("you to pay for salt transport when your miners can't cover the complete transport chain") {
+            transportCostDistribution != null || transportCost(saltToMine, player, at) == 0
         }
         transitionRequires("you not to pay more złoty for salt transport than is required") {
             transportCostDistribution == null || transportCostDistribution.totalToPay().debug { "$player intends to pay $it in total for transport" } <= transportCost(saltToMine, player, at)
         }
+        transitionRequires("you to only pay miners in the transport chain") {
+            everyPlayerInTheDistributionShouldHaveAtLeastOneMinerInTheTransportChain(transportCostDistribution, at, player)
+        }
         transportCostDistribution?.executeTransactions()?.forEach { eventStream.push(it.from); eventStream.push(it.to) }
+    }
+
+    private fun everyPlayerInTheDistributionShouldHaveAtLeastOneMinerInTheTransportChain(transportCostDistribution: TransportCostDistribution?, fromMineChamber: PositionInMine, playerThatRequiresTransport: PlayerColor) : Boolean {
+        // does not take into account a player having multiple miners and being paid for that
+        // so we could check that a player has at least the same amount of miners than they're being paid for in the transportCostDistribution
+        val transportChain = TransportChain(startingFrom = fromMineChamber, playerThatRequiresTransport = playerThatRequiresTransport, eventStream = eventStream)
+        return transportCostDistribution?.canCover(transportChain) ?: true
     }
 
     private fun transportCost(saltToMine: Salts, player: PlayerColor, at: PositionInMine) =
             saltToMine.size.debug { "Amount of transported salt to pay for: $it" } * transportersNeeded(player, at)
 
+    //TODO Refactor this into using a TransportChain class, that we can reuse in the TransportCostDistribution check
     private fun transportersNeeded(player: PlayerColor, fromMineChamber: PositionInMine): Int {
         val positionsTheSaltWillTravel = fromMineChamber.positionsUntilTheTop()
         return miners.filter { it.at in positionsTheSaltWillTravel }
@@ -319,20 +332,6 @@ enum class PlayerColor {
     White,
     Orange,
     Purple;
-}
-
-class TransportCostDistribution private constructor(private val from: PlayerColor, private val paymentPerPlayer: MutableMap<PlayerColor, Zloty> = mutableMapOf()) {
-    fun pay(player: PlayerColor, zloty: Zloty): TransportCostDistribution {
-        paymentPerPlayer.merge(player, zloty, Zloty::plus)
-        return this
-    }
-
-    fun executeTransactions() = paymentPerPlayer.map { (to, amount) -> transaction(from, to, amount) }
-    fun totalToPay(): Zloty = paymentPerPlayer.values.sum()
-
-    companion object TransportCosts {
-        fun transportCostDistribution(from: PlayerColor): TransportCostDistribution = TransportCostDistribution(from)
-    }
 }
 
 class PaymentTransaction private constructor(val from: ZlotyPaid, val to: ZlotyReceived) {
