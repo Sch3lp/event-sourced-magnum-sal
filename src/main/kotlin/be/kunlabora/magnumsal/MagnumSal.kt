@@ -185,7 +185,7 @@ class MagnumSal(private val eventStream: EventStream,
     }
 
     private fun handleSaltTransport(player: PlayerColor, at: PositionInMine, saltMined: Salts, transportCostDistribution: TransportCostDistribution?) {
-        TransportSaltAction(saltMined, player, at, eventStream)
+        TransportSaltAction(at, eventStream, saltMined, player)
                 .whenCoveredBy(transportCostDistribution) { paymentTransaction ->
                     eventStream.push(paymentTransaction.from); eventStream.push(paymentTransaction.to)
                 }

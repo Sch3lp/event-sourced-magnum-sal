@@ -3,7 +3,10 @@ package be.kunlabora.magnumsal
 import be.kunlabora.magnumsal.gamepieces.Salts
 import be.kunlabora.magnumsal.gamepieces.Zloty
 
-class TransportCostDistribution private constructor(private val from: PlayerColor, private val paymentPerPlayer: MutableMap<PlayerColor, Zloty> = mutableMapOf()) {
+class TransportCostDistribution
+private constructor(private val from: PlayerColor,
+                    private val paymentPerPlayer: MutableMap<PlayerColor, Zloty> = mutableMapOf()
+) {
     fun pay(player: PlayerColor, zloty: Zloty): TransportCostDistribution {
         paymentPerPlayer.merge(player, zloty, Zloty::plus)
         return this

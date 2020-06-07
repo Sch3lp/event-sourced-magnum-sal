@@ -5,10 +5,10 @@ import be.kunlabora.magnumsal.gamepieces.Salts
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-class TransportSaltAction(private val saltMined: Salts,
+class TransportSaltAction(at: PositionInMine,
+                          eventStream: EventStream,
+                          private val saltMined: Salts,
                           private val player: PlayerColor,
-                          private val at: PositionInMine,
-                          private val eventStream: EventStream,
                           private val debugEnabled: Boolean = false) {
 
     private val transportChain = TransportChain(at, player, eventStream)
