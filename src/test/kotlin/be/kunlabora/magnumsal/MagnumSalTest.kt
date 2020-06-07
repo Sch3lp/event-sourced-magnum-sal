@@ -642,7 +642,7 @@ class MagnumSalTest {
         }
 
         @Nested
-        inner class `Mining costs złoty` {
+        inner class `Mining costs złoty for transportation of salt out of the mine` {
             @Test
             fun `Cannot mine from a Mine Chamber when player does not have enough money to pay the chain`() {
                 val magnumSal = TestMagnumSal(eventStream)
@@ -860,6 +860,39 @@ class MagnumSalTest {
                         .doesNotContain(
                                 ZlotyPaid(PersonThatCanHandleZloty.Player(White), 1), ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 1),
                                 ZlotyPaid(PersonThatCanHandleZloty.Player(White), 1), ZlotyReceived(PersonThatCanHandleZloty.Player(Orange), 1)
+                        )
+            }
+
+            @Test
+            fun `Paying multiple players, where one of the players is paid more than their miners can carry should be impossible`() {
+                val testMagnumSal = TestMagnumSal(eventStream)
+                        .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
+                        .withTwoWhiteMinersAtFirstRightMineChamberWithThreePlayers()
+                        .withPlayerHaving(White, 4)
+                        .withDebugger()
+                val magnumSal = testMagnumSal.build()
+
+                magnumSal.removeWorkerFromMine(White, at(1,0))
+                magnumSal.pass(White)
+                magnumSal.pass(Black)
+                magnumSal.pass(Black)
+                magnumSal.removeWorkerFromMine(Orange, at(1,0))
+                magnumSal.pass(Orange)
+                magnumSal.visualizeMiners()
+                magnumSal.visualizeZloty()
+
+                assertThatExceptionOfType(IllegalTransitionException::class.java)
+                        .isThrownBy {
+                            magnumSal.mine(White, at(2, 1), Salts(WHITE, WHITE), with(transportCostDistribution(White)) {
+                                pay(Black, 1)
+                                pay(Orange, 3)
+                            })
+                        }.withMessage("Transition requires you to only pay miners in the transport chain")
+
+                assertThat(testMagnumSal.filterEvents<PaymentEvent>())
+                        .doesNotContain(
+                                ZlotyPaid(PersonThatCanHandleZloty.Player(White), 1), ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 1),
+                                ZlotyPaid(PersonThatCanHandleZloty.Player(White), 1), ZlotyReceived(PersonThatCanHandleZloty.Player(Orange), 3)
                         )
             }
         }

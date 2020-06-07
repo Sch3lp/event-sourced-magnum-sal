@@ -37,8 +37,6 @@ class TransportSaltAction(at: PositionInMine,
     private fun transportCost(saltMined: Salts) = transportChain.transportCostFor(saltMined)
 
     private fun transportCanBeCoveredBy(transportCostDistribution: TransportCostDistribution, saltMined: Salts) : Boolean {
-        // does not take into account a player having multiple miners and being paid for that
-        // so we could check that a player has at least the same amount of miners than they're being paid for in the transportCostDistribution
         return transportCostDistribution.canCover(transportChain, saltMined)
     }
 

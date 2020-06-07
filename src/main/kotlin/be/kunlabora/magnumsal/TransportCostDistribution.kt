@@ -15,6 +15,14 @@ private constructor(private val from: PlayerColor,
     fun executeTransactions() = paymentPerPlayer.map { (to, amount) -> PaymentTransaction.transaction(from, to, amount) }
     fun totalToPay(): Zloty = paymentPerPlayer.values.sum()
     fun canCover(transportChain: TransportChain, saltMined: Salts) = allPlayersInDistributionAreIn(transportChain)
+            && playersWereNotOverpaidAccordingToTheirMaxTransportCost(transportChain, saltMined)
+
+    private fun playersWereNotOverpaidAccordingToTheirMaxTransportCost(transportChain: TransportChain, saltMined: Salts): Boolean {
+        val maxTransportCostPerPlayer: Map<PlayerColor, Zloty> = transportChain.maxTransportCostPerPlayer(saltMined)
+        return paymentPerPlayer.all { (player, payment) ->
+            payment <= (maxTransportCostPerPlayer[player]?: 0)
+        }
+    }
 
     private fun allPlayersInDistributionAreIn(transportChain: TransportChain) =
             transportChain.containsAll(paymentPerPlayer.keys)
