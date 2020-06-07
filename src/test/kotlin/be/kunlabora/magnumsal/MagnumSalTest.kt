@@ -6,6 +6,7 @@ import be.kunlabora.magnumsal.MagnumSalEvent.PlayerActionEvent.MinerMovementEven
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyPaid
 import be.kunlabora.magnumsal.MagnumSalEvent.PaymentEvent.ZlotyReceived
 import be.kunlabora.magnumsal.MagnumSalEvent.PersonThatCanHandleZloty.Bank
+import be.kunlabora.magnumsal.MagnumSalEvent.PersonThatCanHandleZloty.Player
 import be.kunlabora.magnumsal.MagnumSalEvent.PlayerActionEvent.SaltMined
 import be.kunlabora.magnumsal.PlayerColor.*
 import be.kunlabora.magnumsal.PositionInMine.Companion.at
@@ -155,10 +156,10 @@ class MagnumSalTest {
                             PlayerJoined("Gargamel", Orange),
                             PlayerJoined("Snarf", Purple),
                             PlayerOrderDetermined(Orange, Black, Purple, White),
-                            ZlotyReceived(PersonThatCanHandleZloty.Player(Orange), 10),
-                            ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 12),
-                            ZlotyReceived(PersonThatCanHandleZloty.Player(Purple), 14),
-                            ZlotyReceived(PersonThatCanHandleZloty.Player(White), 16)
+                            ZlotyReceived(Player(Orange), 10),
+                            ZlotyReceived(Player(Black), 12),
+                            ZlotyReceived(Player(Purple), 14),
+                            ZlotyReceived(Player(White), 16)
                     )
         }
 
@@ -176,8 +177,8 @@ class MagnumSalTest {
                             PlayerJoined("Bruno", White),
                             PlayerJoined("Tim", Black),
                             PlayerOrderDetermined(Black, White),
-                            ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 10),
-                            ZlotyReceived(PersonThatCanHandleZloty.Player(White), 12)
+                            ZlotyReceived(Player(Black), 10),
+                            ZlotyReceived(Player(White), 12)
                     )
         }
     }
@@ -678,7 +679,7 @@ class MagnumSalTest {
                 })
 
                 assertThat(testMagnumSal.filterEvents<PaymentEvent>())
-                        .containsExactlyInAnyOrder(ZlotyPaid(PersonThatCanHandleZloty.Player(White), 2), ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 2))
+                        .containsExactlyInAnyOrder(ZlotyPaid(Player(White), 2), ZlotyReceived(Player(Black), 2))
                 magnumSal.visualizeZloty()
             }
 
@@ -726,7 +727,7 @@ class MagnumSalTest {
                         }
                         .withMessage("Transition requires you not to pay more złoty for salt transport than is required")
 
-                assertThat(eventStream).doesNotContain(ZlotyPaid(PersonThatCanHandleZloty.Player(White), 6), ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 6))
+                assertThat(eventStream).doesNotContain(ZlotyPaid(Player(White), 6), ZlotyReceived(Player(Black), 6))
             }
 
             @Test
@@ -751,7 +752,7 @@ class MagnumSalTest {
                         }
                         .withMessage("Transition requires you to have enough złoty to pay for salt transport bringing your mined salt out of the mine")
 
-                assertThat(eventStream).doesNotContain(ZlotyPaid(PersonThatCanHandleZloty.Player(White), 4), ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 4))
+                assertThat(eventStream).doesNotContain(ZlotyPaid(Player(White), 4), ZlotyReceived(Player(Black), 4))
             }
 
             @Test
@@ -776,7 +777,7 @@ class MagnumSalTest {
                         }
                         .withMessage("Transition requires you not to pay more złoty for salt transport than is required")
 
-                assertThat(eventStream).doesNotContain(ZlotyPaid(PersonThatCanHandleZloty.Player(White), 3), ZlotyPaid(PersonThatCanHandleZloty.Player(White), 3), ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 3), ZlotyReceived(PersonThatCanHandleZloty.Player(Orange), 3))
+                assertThat(eventStream).doesNotContain(ZlotyPaid(Player(White), 3), ZlotyPaid(Player(White), 3), ZlotyReceived(Player(Black), 3), ZlotyReceived(Player(Orange), 3))
             }
 
             @Test
@@ -803,7 +804,7 @@ class MagnumSalTest {
                         .withMessage("Transition requires you to have enough złoty to pay for salt transport bringing your mined salt out of the mine")
 
                 assertThat(testMagnumSal.filterEvents<PaymentEvent>())
-                        .doesNotContain(ZlotyPaid(PersonThatCanHandleZloty.Player(White), 2), ZlotyPaid(PersonThatCanHandleZloty.Player(White), 2), ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 2), ZlotyReceived(PersonThatCanHandleZloty.Player(Orange), 2))
+                        .doesNotContain(ZlotyPaid(Player(White), 2), ZlotyPaid(Player(White), 2), ZlotyReceived(Player(Black), 2), ZlotyReceived(Player(Orange), 2))
             }
 
             @Test
@@ -825,8 +826,8 @@ class MagnumSalTest {
 
                 assertThat(testMagnumSal.filterEvents<PaymentEvent>())
                         .containsExactlyInAnyOrder(
-                                ZlotyPaid(PersonThatCanHandleZloty.Player(White), 1), ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 1),
-                                ZlotyPaid(PersonThatCanHandleZloty.Player(White), 1), ZlotyReceived(PersonThatCanHandleZloty.Player(Orange), 1)
+                                ZlotyPaid(Player(White), 1), ZlotyReceived(Player(Black), 1),
+                                ZlotyPaid(Player(White), 1), ZlotyReceived(Player(Orange), 1)
                         )
             }
 
@@ -858,8 +859,8 @@ class MagnumSalTest {
 
                 assertThat(testMagnumSal.filterEvents<PaymentEvent>())
                         .doesNotContain(
-                                ZlotyPaid(PersonThatCanHandleZloty.Player(White), 1), ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 1),
-                                ZlotyPaid(PersonThatCanHandleZloty.Player(White), 1), ZlotyReceived(PersonThatCanHandleZloty.Player(Orange), 1)
+                                ZlotyPaid(Player(White), 1), ZlotyReceived(Player(Black), 1),
+                                ZlotyPaid(Player(White), 1), ZlotyReceived(Player(Orange), 1)
                         )
             }
 
@@ -891,8 +892,56 @@ class MagnumSalTest {
 
                 assertThat(testMagnumSal.filterEvents<PaymentEvent>())
                         .doesNotContain(
-                                ZlotyPaid(PersonThatCanHandleZloty.Player(White), 1), ZlotyReceived(PersonThatCanHandleZloty.Player(Black), 1),
-                                ZlotyPaid(PersonThatCanHandleZloty.Player(White), 1), ZlotyReceived(PersonThatCanHandleZloty.Player(Orange), 3)
+                                ZlotyPaid(Player(White), 1), ZlotyReceived(Player(Black), 1),
+                                ZlotyPaid(Player(White), 1), ZlotyReceived(Player(Orange), 3)
+                        )
+            }
+
+            @Test
+            fun `Paying multiple players, not paying a player for their transport services shouldn't be allowed`() {
+                val testMagnumSal = TestMagnumSal(eventStream)
+                        .withOnlyMineChamberTilesOf(MineChamberTile(Level.I, Salts(BROWN, BROWN, GREEN, GREEN, WHITE, WHITE), 0))
+                        .withPlayersInOrder("m_m_m_" using White, "niftylius" using Purple, "sch3lp" using Black, "ygdev" using Orange)
+                        .withDebugger()
+                val magnumSal = testMagnumSal.build()
+
+                magnumSal.placeWorkerInMine(White, at(1,0))
+                magnumSal.placeWorkerInMine(Purple, at(2,0))
+                magnumSal.placeWorkerInMine(Black, at(2,0))
+                magnumSal.pass(Orange)
+
+                magnumSal.pass(White)
+                magnumSal.pass(White)
+                magnumSal.placeWorkerInMine(Purple, at(2,1))
+                magnumSal.pass(Purple)
+                magnumSal.placeWorkerInMine(Black, at(2,1))
+                magnumSal.pass(Black)
+                magnumSal.placeWorkerInMine(Orange, at(2,2))
+                magnumSal.placeWorkerInMine(Orange, at(2,2))
+
+                magnumSal.pass(White)
+                magnumSal.pass(White)
+                magnumSal.pass(Purple)
+                magnumSal.pass(Purple)
+                magnumSal.pass(Black)
+                magnumSal.pass(Black)
+
+                magnumSal.placeWorkerInMine(Orange, at(2,2))
+                magnumSal.visualizeMiners()
+                magnumSal.visualizeZloty()
+
+                assertThatExceptionOfType(IllegalTransitionException::class.java)
+                        .isThrownBy {
+                            magnumSal.mine(Orange, at(2, 2), Salts(WHITE), with(transportCostDistribution(Orange)) {
+                                pay(Black, 1)
+                                pay(Purple, 2)
+                            })
+                        }.withMessage("Transition requires you to only pay miners in the transport chain")
+
+                assertThat(testMagnumSal.filterEvents<PaymentEvent>())
+                        .doesNotContain(
+                                ZlotyPaid(Player(Orange), 1), ZlotyReceived(Player(Black), 1),
+                                ZlotyPaid(Player(Orange), 2), ZlotyReceived(Player(Purple), 2)
                         )
             }
         }
@@ -1071,7 +1120,7 @@ class MagnumSalTest {
             magnumSal.usePumphouse(White, at(2,1), 1)
 
             val actualPaymentEvents = testMagnumSal.filterEvents<ZlotyPaid>()
-            assertThat(actualPaymentEvents.filter { it.person == PersonThatCanHandleZloty.Player(White) })
+            assertThat(actualPaymentEvents.filter { it.person == Player(White) })
                     .isEmpty()
         }
 
@@ -1091,7 +1140,7 @@ class MagnumSalTest {
 
             val actualPaymentEvents = testMagnumSal.filterEvents<PaymentEvent>()
             assertThat(actualPaymentEvents)
-                    .containsOnly(ZlotyPaid(PersonThatCanHandleZloty.Player(White), 2), ZlotyReceived(Bank, 2))
+                    .containsOnly(ZlotyPaid(Player(White), 2), ZlotyReceived(Bank, 2))
         }
 
         @Test
@@ -1110,7 +1159,7 @@ class MagnumSalTest {
 
             val actualPaymentEvents = testMagnumSal.filterEvents<PaymentEvent>()
             assertThat(actualPaymentEvents)
-                    .containsOnly(ZlotyPaid(PersonThatCanHandleZloty.Player(White), 5), ZlotyReceived(Bank, 5))
+                    .containsOnly(ZlotyPaid(Player(White), 5), ZlotyReceived(Bank, 5))
         }
 
         @Test
@@ -1129,7 +1178,7 @@ class MagnumSalTest {
 
             val actualPaymentEvents = testMagnumSal.filterEvents<PaymentEvent>()
             assertThat(actualPaymentEvents)
-                    .containsOnly(ZlotyPaid(PersonThatCanHandleZloty.Player(White), 9), ZlotyReceived(Bank, 9))
+                    .containsOnly(ZlotyPaid(Player(White), 9), ZlotyReceived(Bank, 9))
         }
     }
 }
